@@ -1,0 +1,33 @@
+import FWCore.ParameterSet.Config as cms
+
+myRPCSeed = cms.EDProducer('RPCSeedProducer', 
+        BarrelLayerRange = cms.vuint32(5),
+        EndcapLayerRange = cms.vuint32(0),
+        isCosmic = cms.bool(False),
+        isSpecialLayers = cms.bool(False), 
+        isMixBarrelwithEndcap = cms.bool(False),
+        LayersinBarrel = cms.vuint32(1,1,1,1,0,1),
+        LayersinEndcap = cms.vuint32(1,1,1,1,1,1),
+        ConstraintedBarrelLayer = cms.vuint32(1,1,1,1,0,0),
+        ConstraintedNegativeEndcapLayer = cms.vuint32(1,1,1),
+        ConstraintedPositiveEndcapLayer = cms.vuint32(1,1,1),
+        RPCRecHitsLabel = cms.InputTag("rpcRecHits"),
+        BxRange = cms.uint32(10),
+        ClusterSet = cms.vint32(),
+        MaxDeltaPhi = cms.double(3.14159265359/3),
+        ZError = cms.double(130.0),
+        MinDeltaPhi = cms.double(0.06),
+        AlgorithmType = cms.uint32(0),
+        MagnecticFieldThreshold = cms.double(0.5),
+        sampleCount = cms.uint32(20),
+        ShareRecHitsNumberThreshold = cms.uint32(1),
+        isCheckCandidateOverlap = cms.bool(False),
+        isCheckGoodOverlap = cms.bool(True),
+        MeanPt_A = cms.double(344.529),
+        MeanPt_B = cms.double(-108.671),
+        MeanPt_C = cms.double(11.1376),
+        SigmaPt_A = cms.double(213.289),
+        SigmaPt_B = cms.double(-77.8504),
+        SigmaPt_C = cms.double(7.10351)
+)
+
