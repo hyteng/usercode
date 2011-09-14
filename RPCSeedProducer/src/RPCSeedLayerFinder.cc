@@ -14,7 +14,7 @@ using namespace edm;
 RPCSeedLayerFinder::RPCSeedLayerFinder() {
 
     // Initiate the member
-    LayersinRPC.clear();  
+    RPCLayers.clear();  
     isConfigured = false;
     isInputset = false;
     isOutputset = false;
@@ -70,8 +70,8 @@ void RPCSeedLayerFinder::fill() {
         return;
     }
 
-    // Clear the vector LayersinRPC
-    LayersinRPC.clear();
+    // Clear the vector RPCLayers
+    RPCLayers.clear();
 
     // Now fill the Layers
     if(isCosmic == true) {
@@ -102,9 +102,9 @@ void RPCSeedLayerFinder::fillLayers() {
             if(NumberofLayers < 1 || NumberofLayers > BarrelLayerNumber)
                 continue;
             int type = 0;  // type=0 for barrel
-            LayersinRPC.clear();
+            RPCLayers.clear();
             SpecialLayers(-1, NumberofLayers, type);
-            LayersinRPC.clear();
+            RPCLayers.clear();
         }
 
         for(std::vector<unsigned int>::iterator NumberofLayersinEndcap = EndcapLayerRange.begin(); NumberofLayersinEndcap != EndcapLayerRange.end(); NumberofLayersinEndcap++) {
@@ -113,13 +113,13 @@ void RPCSeedLayerFinder::fillLayers() {
                 continue;
             int type = 1; // type=1 for endcap
             // for -Z layers
-            LayersinRPC.clear();
+            RPCLayers.clear();
             SpecialLayers(BarrelLayerNumber-1, NumberofLayers, type);
-            LayersinRPC.clear();
+            RPCLayers.clear();
             //for +Z layers
-            LayersinRPC.clear();
+            RPCLayers.clear();
             SpecialLayers(BarrelLayerNumber+EachEndcapLayerNumber-1, NumberofLayers, type);
-            LayersinRPC.clear();
+            RPCLayers.clear();
         }
     }
 
@@ -127,23 +127,23 @@ void RPCSeedLayerFinder::fillLayers() {
         // Fill barrel layer for seed
         bool EnoughforBarrel = true;
         unsigned int i = 0;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinBarrel.begin(); it != LayersinBarrel.end(); it++, i++) {   
             if((*it) != 0 && i < BarrelLayerNumber) {
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
                 else {
                     if(debug) cout << "Not recHits in special Barrel layer " << i << endl;
                     EnoughforBarrel = false;
                 }
             }
         }
-        if(EnoughforBarrel && (LayersinRPC.size() != 0)) {
+        if(EnoughforBarrel && (RPCLayers.size() != 0)) {
             // Initiate and call recHit Finder
-            RPCrecHitFinderRef->setLayers(LayersinRPC);
+            RPCrecHitFinderRef->setLayers(RPCLayers);
             RPCrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
 
         // Fill -Z and +Z endcap layer
         bool EnoughforEndcap = true;
@@ -151,49 +151,49 @@ void RPCSeedLayerFinder::fillLayers() {
         // Fill endcap- layer for seed
         i = BarrelLayerNumber;
         EnoughforEndcap = true;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinEndcap.begin(); it != LayersinEndcap.end(); it++, i++) {
             if((*it) != 0 && i < (BarrelLayerNumber+EachEndcapLayerNumber)) {
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
                 else {
                     if(debug) cout << "Not recHits in special Endcap " << (i - BarrelLayerNumber) << endl;
                     EnoughforEndcap = false;
                 }
             }
         }
-        if(EnoughforEndcap && (LayersinRPC.size() != 0)) {
+        if(EnoughforEndcap && (RPCLayers.size() != 0)) {
             // Initiate and call recHit Finder
-            RPCrecHitFinderRef->setLayers(LayersinRPC);
+            RPCrecHitFinderRef->setLayers(RPCLayers);
             RPCrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
 
         //Fill endcap+ layer for seed
         i = BarrelLayerNumber;
         EnoughforEndcap = true;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinEndcap.begin(); it != LayersinEndcap.end(); it++, i++) {
             if((*it) != 0 && i >= (BarrelLayerNumber+EachEndcapLayerNumber) && i < (BarrelLayerNumber+EachEndcapLayerNumber*2)) {
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
                 else {
                     if(debug) cout << "Not recHits in special Endcap " << i << endl;
                     EnoughforEndcap = false;
                 }
             }
         }
-        if(EnoughforEndcap && (LayersinRPC.size() != 0)) {
+        if(EnoughforEndcap && (RPCLayers.size() != 0)) {
             // Initiate and call recHit Finder
-            RPCrecHitFinderRef->setLayers(LayersinRPC);
+            RPCrecHitFinderRef->setLayers(RPCLayers);
             RPCrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
     }
 
     if(isMixBarrelwithEndcap == true) {
         if(debug) cout <<" Mix is not ready for non-cosmic case" << endl;
-        LayersinRPC.clear();
+        RPCLayers.clear();
     }
 }
 
@@ -204,80 +204,80 @@ void RPCSeedLayerFinder::fillCosmicLayers() {
 
         // Fill barrel layer for seed
         unsigned int i = 0;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinBarrel.begin(); it != LayersinBarrel.end(); it++, i++) {   
             if((*it) != 0 && i < BarrelLayerNumber)
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
         }
-        if(LayersinRPC.size() != 0) {
+        if(RPCLayers.size() != 0) {
             // Initiate and call recHit Finder
-            RPCCosmicrecHitFinderRef->setLayers(LayersinRPC);
+            RPCCosmicrecHitFinderRef->setLayers(RPCLayers);
             RPCCosmicrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
 
         // Fill -Z and +Z endcap layer
 
         // Fill endcap- layer for seed
         i = BarrelLayerNumber;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinEndcap.begin(); it != LayersinEndcap.end(); it++, i++) {
             if((*it) != 0 && i < (BarrelLayerNumber+EachEndcapLayerNumber))
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
         }
-        if(LayersinRPC.size() != 0) {
+        if(RPCLayers.size() != 0) {
             // Initiate and call recHit Finder
-            RPCCosmicrecHitFinderRef->setLayers(LayersinRPC);
+            RPCCosmicrecHitFinderRef->setLayers(RPCLayers);
             RPCCosmicrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
 
         //Fill endcap+ layer for seed
         i = BarrelLayerNumber;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinEndcap.begin(); it != LayersinEndcap.end(); it++, i++) {
             if((*it) != 0 && i >= (BarrelLayerNumber+EachEndcapLayerNumber) && i < (BarrelLayerNumber+EachEndcapLayerNumber*2))
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
         }
-        if(LayersinRPC.size() != 0) {
+        if(RPCLayers.size() != 0) {
             // Initiate and call recHit Finder
-            RPCCosmicrecHitFinderRef->setLayers(LayersinRPC);
+            RPCCosmicrecHitFinderRef->setLayers(RPCLayers);
             RPCCosmicrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
     }
 
     if(isSpecialLayers == true && isMixBarrelwithEndcap == true) {
 
         // Fill all
         unsigned int i = 0;
-        LayersinRPC.clear();
+        RPCLayers.clear();
         for(std::vector<unsigned int>::iterator it = LayersinBarrel.begin(); it != LayersinBarrel.end(); it++, i++) {   
             if((*it) != 0 && i < BarrelLayerNumber)
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
         }
         i = BarrelLayerNumber;
         for(std::vector<unsigned int>::iterator it = LayersinEndcap.begin(); it != LayersinEndcap.end(); it++, i++) {
             if((*it) != 0 && i < (BarrelLayerNumber+EachEndcapLayerNumber*2))
                 if(RecHitNumberinLayer[i] != 0)
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
         }
 
-        if(LayersinRPC.size() != 0) {
+        if(RPCLayers.size() != 0) {
             // Initiate and call recHit Finder
-            RPCCosmicrecHitFinderRef->setLayers(LayersinRPC);
+            RPCCosmicrecHitFinderRef->setLayers(RPCLayers);
             RPCCosmicrecHitFinderRef->fillrecHits();
         }
-        LayersinRPC.clear();
+        RPCLayers.clear();
     }
 
     if(isSpecialLayers == false) {
         if(debug) cout << "Not ready for not SpecialLayers for Cosmic case" << endl;
-        LayersinRPC.clear();
+        RPCLayers.clear();
     }
 }
 
@@ -291,26 +291,26 @@ void RPCSeedLayerFinder::SpecialLayers(int last, unsigned int NumberofLayers, in
             if(debug) cout << "NumberofLayers larger than max layers in barrel" << endl;
             return;
         }
-        for(unsigned int i = (last+1); i <= (BarrelLayerNumber-NumberofLayers+LayersinRPC.size()); i++) {
+        for(unsigned int i = (last+1); i <= (BarrelLayerNumber-NumberofLayers+RPCLayers.size()); i++) {
             if(RecHitNumberinLayer[i] != 0) {
-                LayersinRPC.push_back(i);
+                RPCLayers.push_back(i);
                 last = i;
-                if(LayersinRPC.size() < NumberofLayers)
+                if(RPCLayers.size() < NumberofLayers)
                     SpecialLayers(last, NumberofLayers, type);
                 else {
                     if(checkBarrelConstrain()) {
                         if(debug) cout << "Find special barrel layers: ";
                         for(unsigned int k = 0; k < NumberofLayers; k++)
-                            if(debug) cout << LayersinRPC[k] <<" ";
+                            if(debug) cout << RPCLayers[k] <<" ";
                         if(debug) cout << endl;
                         // Initiate and call recHit Finder
-                        RPCrecHitFinderRef->setLayers(LayersinRPC);
+                        RPCrecHitFinderRef->setLayers(RPCLayers);
                         RPCrecHitFinderRef->fillrecHits();
                     }
                     else
                         if(debug) cout << "The layers don't contain all layers in constrain" << endl;
                 }
-                LayersinRPC.pop_back();
+                RPCLayers.pop_back();
             }
         }
     }
@@ -321,53 +321,53 @@ void RPCSeedLayerFinder::SpecialLayers(int last, unsigned int NumberofLayers, in
             if(debug) cout << "NumberofLayers larger than max layers in endcap" << endl;
             return;
         }
-        if(last < (BarrelLayerNumber+EachEndcapLayerNumber-1) || (last == (BarrelLayerNumber+EachEndcapLayerNumber-1) && LayersinRPC.size() != 0)) {
+        if(last < (BarrelLayerNumber+EachEndcapLayerNumber-1) || (last == (BarrelLayerNumber+EachEndcapLayerNumber-1) && RPCLayers.size() != 0)) {
             // For -Z case
-            for(unsigned int i =  (last+1); i <= (BarrelLayerNumber+EachEndcapLayerNumber-NumberofLayers+LayersinRPC.size()); i++) {
+            for(unsigned int i =  (last+1); i <= (BarrelLayerNumber+EachEndcapLayerNumber-NumberofLayers+RPCLayers.size()); i++) {
                 if(RecHitNumberinLayer[i] != 0) {
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
                     last = i;
-                    if(LayersinRPC.size() < NumberofLayers)
+                    if(RPCLayers.size() < NumberofLayers)
                         SpecialLayers(last, NumberofLayers, type);
                     else {
                         if(checkNegativeEndcapConstrain()) {
                             if(debug) cout << "Find special -Z endcap layers: ";
                             for(unsigned int k = 0; k < NumberofLayers; k++)
-                                if(debug) cout << LayersinRPC[k] <<" ";
+                                if(debug) cout << RPCLayers[k] <<" ";
                             if(debug) cout << endl;
                             // Initiate and call recHit Finder
-                            RPCrecHitFinderRef->setLayers(LayersinRPC);
+                            RPCrecHitFinderRef->setLayers(RPCLayers);
                             RPCrecHitFinderRef->fillrecHits();
                         }
                         else
                             if(debug) cout << "The layers don't contain all layers in constrain" << endl;
                     }
-                    LayersinRPC.pop_back();
+                    RPCLayers.pop_back();
                 }
             }
         }
         else {
             // For +Z case
-            for(unsigned int i = (last+1); i <= (BarrelLayerNumber+EachEndcapLayerNumber*2-NumberofLayers+LayersinRPC.size()); i++) {
+            for(unsigned int i = (last+1); i <= (BarrelLayerNumber+EachEndcapLayerNumber*2-NumberofLayers+RPCLayers.size()); i++) {
                 if(RecHitNumberinLayer[i] != 0) {
-                    LayersinRPC.push_back(i);
+                    RPCLayers.push_back(i);
                     last = i;
-                    if(LayersinRPC.size() < NumberofLayers)
+                    if(RPCLayers.size() < NumberofLayers)
                         SpecialLayers(last, NumberofLayers, type);
                     else {
                         if(checkPositiveEndcapConstrain()) {
                             if(debug) cout << "Find special +Z endcap layers: ";
                             for(unsigned int k = 0; k < NumberofLayers; k++)
-                                if(debug) cout << LayersinRPC[k] <<" ";
+                                if(debug) cout << RPCLayers[k] <<" ";
                             if(debug) cout << endl;
                             // Initiate and call recHit Finder
-                            RPCrecHitFinderRef->setLayers(LayersinRPC);
+                            RPCrecHitFinderRef->setLayers(RPCLayers);
                             RPCrecHitFinderRef->fillrecHits();
                         }
                         else
                             if(debug) cout << "The layers don't contain all layers in constrain" << endl;
                     }
-                    LayersinRPC.pop_back();
+                    RPCLayers.pop_back();
                 }
             }
         }
@@ -378,8 +378,8 @@ bool RPCSeedLayerFinder::checkBarrelConstrain() {
 
     bool pass = true;
     std::vector<unsigned int> fitConstrain = ConstraintedBarrelLayer;
-    for(unsigned int i = 0; i < LayersinRPC.size(); i++)
-        fitConstrain[LayersinRPC[i]] = 0;
+    for(unsigned int i = 0; i < RPCLayers.size(); i++)
+        fitConstrain[RPCLayers[i]] = 0;
     for(unsigned int i = 0; i < BarrelLayerNumber; i++)
         if(fitConstrain[i] != 0)
             pass = false;
@@ -390,8 +390,8 @@ bool RPCSeedLayerFinder::checkPositiveEndcapConstrain() {
 
     bool pass = true;
     std::vector<unsigned int> fitConstrain = ConstraintedPositiveEndcapLayer;
-    for(unsigned int i = 0; i < LayersinRPC.size(); i++)
-        fitConstrain[LayersinRPC[i]-BarrelLayerNumber-EachEndcapLayerNumber] = 0;
+    for(unsigned int i = 0; i < RPCLayers.size(); i++)
+        fitConstrain[RPCLayers[i]-BarrelLayerNumber-EachEndcapLayerNumber] = 0;
     for(unsigned int i = 0; i < EachEndcapLayerNumber; i++)
         if(fitConstrain[i] != 0)
             pass = false;
@@ -402,8 +402,8 @@ bool RPCSeedLayerFinder::checkNegativeEndcapConstrain() {
 
     bool pass = true;
     std::vector<unsigned int> fitConstrain = ConstraintedNegativeEndcapLayer;
-    for(unsigned int i = 0; i < LayersinRPC.size(); i++)
-        fitConstrain[LayersinRPC[i]-BarrelLayerNumber] = 0;
+    for(unsigned int i = 0; i < RPCLayers.size(); i++)
+        fitConstrain[RPCLayers[i]-BarrelLayerNumber] = 0;
     for(unsigned int i = 0; i < EachEndcapLayerNumber; i++)
         if(fitConstrain[i] != 0)
             pass = false;

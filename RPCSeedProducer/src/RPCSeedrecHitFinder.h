@@ -48,7 +48,7 @@ class RPCSeedrecHitFinder {
         bool isInputset;
         bool isOutputset;
         // Enable layers in Barrel and Endcap
-        std::vector<unsigned int> LayersinRPC;
+        std::vector<unsigned int> RPCLayers;
         MuonRecHitContainer* recHitsRPC[RPCLayerNumber];
         GlobalVector theInitialVector;
         ConstMuonRecHitContainer theRecHits;

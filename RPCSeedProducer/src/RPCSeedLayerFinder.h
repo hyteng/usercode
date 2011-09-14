@@ -62,7 +62,7 @@ class RPCSeedLayerFinder {
         bool isInputset;
         bool isOutputset;
         // Enable layers in Barrel and Endcap
-        std::vector<unsigned int> LayersinRPC;
+        std::vector<unsigned int> RPCLayers;
         // Information of recHits in each layer
         unsigned int RecHitNumberinLayer[RPCLayerNumber];
 };

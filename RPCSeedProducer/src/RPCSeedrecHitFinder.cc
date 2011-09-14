@@ -30,7 +30,7 @@ RPCSeedrecHitFinder::RPCSeedrecHitFinder() {
     BxRange = 0;
     MaxDeltaPhi = 0;
     ClusterSet.clear();
-    LayersinRPC.clear();
+    RPCLayers.clear();
     theRecHits.clear();
 }
 
@@ -69,7 +69,7 @@ void RPCSeedrecHitFinder::setOutput(RPCSeedFinder *Seed) {
 
 void RPCSeedrecHitFinder::setLayers(const std::vector<unsigned int>& Layers) {
 
-    LayersinRPC = Layers;
+    RPCLayers = Layers;
     isLayerset = true;
 }
 
@@ -81,8 +81,8 @@ void RPCSeedrecHitFinder::fillrecHits() {
     }
    if(debug) cout << "Now fill recHits from Layers: ";
     
-    for(unsigned int k = 0; k < LayersinRPC.size(); k++)
-        if(debug) cout << LayersinRPC[k] <<" ";
+    for(unsigned int k = 0; k < RPCLayers.size(); k++)
+        if(debug) cout << RPCLayers[k] <<" ";
     if(debug) cout << endl;
     unsigned int LayerIndex = 0;
     theRecHits.clear();
@@ -90,15 +90,15 @@ void RPCSeedrecHitFinder::fillrecHits() {
 
     // Unset the signal
     if(debug) cout << "Finish filling recHits. " << endl;
-    LayersinRPC.clear();
+    RPCLayers.clear();
     isLayerset = false;
     theRecHits.clear();
 }
 
 void RPCSeedrecHitFinder::complete(unsigned int LayerIndex) {
 
-    for(MuonRecHitContainer::const_iterator it = recHitsRPC[LayersinRPC[LayerIndex]]->begin(); it != recHitsRPC[LayersinRPC[LayerIndex]]->end(); it++) {
-        if(debug) cout << "Completing layer[" << LayersinRPC[LayerIndex] << "]." << endl;
+    for(MuonRecHitContainer::const_iterator it = recHitsRPC[RPCLayers[LayerIndex]]->begin(); it != recHitsRPC[RPCLayers[LayerIndex]]->end(); it++) {
+        if(debug) cout << "Completing layer[" << RPCLayers[LayerIndex] << "]." << endl;
 
         // Check validation
         if(!(*it)->isValid())
@@ -143,7 +143,7 @@ void RPCSeedrecHitFinder::complete(unsigned int LayerIndex) {
         // Check if this recHit is the last one in the seed
         // If it is the last one, calculate the seed
         // If it is not the last one, continue to fill the seed from other layers
-        if(LayerIndex == (LayersinRPC.size()-1)) {
+        if(LayerIndex == (RPCLayers.size()-1)) {
             if(debug) cout << "Check and fill one seed." << endl;
             checkandfill();
         }
@@ -251,7 +251,7 @@ void RPCSeedrecHitFinder::checkandfill() {
     if(theRecHits.size() >= 3) {
         theSeed->clear();
         theSeed->setRecHits(theRecHits);
-        //theSeed->setLayers(LayersinRPC);
+        //theSeed->setLayers(RPCLayers);
         theSeed->seed();
     }
     else
