@@ -1,0 +1,25 @@
+Tree brachs
+for each simTrack of muon we have many seeds, dvided by the valid/invalid symbol
+
+EventNumber: event number of the simTrack
+simTrackId: simTrack Id in the event, by trackId() function in sinTrack.
+simTrackType: simTrack type in the event, by type() function in simTrack.
+simTrackMomentum: simTrack momentum at vertx.
+simTrackDirection: simTrack direction at vertex.
+simTrackCharge: simTrack charge, -1 or +1, not 0.
+simTrackvalid: is the simTrack have enough recHit to build seeds.
+simMomentumatRef: simHit momentum value at ref. set -1 if invalid for building seed.
+simDirectionatRef: simHit momentum direction at ref. set (0,0,0) if invalid for building seed.
+simBendingPhi: bending at ref for simTrack. set 0 if invalid for building seed.
+simBendingEntryPosition: position of entry to simTrack bending at ref. set (0,0,0) if invalid for building seed.
+simBendingLeavePosition: position of leave to simTrack bending at ref. set (0,0,0) if invalid for building seed.
+SeedNumber: the seed number related to the simTrack, start from 1, while 0 means no seed related to it(no recHit come from the muon simTrack).
+SeedCharge: seed charge, -1 or +1, if 0 means the patten is estimated to be straight.
+SeedPurity: percentage of recHit in the seed which come from a muon simTrack. only for seed number start from 1. (seed number 0 always have purty 0).
+SeedQuality: seed quality,  only for seed number start from 1. (seed number 0 always have quality 0).
+recoMomentumatRef: seed momentum value at ref. if not pure, ref will be taken for seed's ref which is not correspond to simTrack. only for seed number start from 1, for seed number 0 set to -1.
+recoDirectionatRef: seed momentum direction at ref. if not pure, ref will be taken for seed's ref which is not correspond to simTrack. only for seed number start from 1, for seed number 0 set to (0,0,0).
+recoBendingPhi: bending at ref for seed recHit. if not pure, ref will be taken for seed's ref which is not correspond to simTrack. only for seed number start from 1, for seed number 0 set to 0.
+recoBendingEntryPosition: position of entry to seed recHit bending at ref. if not pure, ref will be taken for seed's ref which is not correspond to simTrack. only for seed number start from 1, for seed number 0 set to (0,0,0).
+recoBendingLeavePosition: position of leave to seed recHit bending at ref. if not pure, ref will be taken for seed's ref which is not correspond to simTrack. only for seed number start from 1, for seed number 0 set to (0,0,0).
+

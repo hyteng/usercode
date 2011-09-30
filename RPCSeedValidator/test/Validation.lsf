@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /afs/cern.ch/user/h/hyteng/CMSSW_3_6_2/src
+cmsenv
+cd -
+root -l -b -q "/afs/cern.ch/user/h/hyteng/scratch0/rpcseed/validation/rangePtanddeltaPhiValidation362/test/RPCSeedValidator.C( \"-file-\" );"
+cp *.png /afs/cern.ch/user/h/hyteng/scratch0/rpcseed/validation/rangePtanddeltaPhiValidation362/test/

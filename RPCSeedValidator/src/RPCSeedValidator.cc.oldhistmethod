@@ -1,0 +1,790 @@
+// -*- C++ -*-
+//
+// Package:    RPCSeedValidator
+// Class:      RPCSeedValidator
+// 
+/**\class RPCSeedValidator RPCSeedValidator.cc MyModule/RPCSeedValidator/src/RPCSeedValidator.cc
+
+Description: <one line class summary>
+
+Implementation:
+<Notes on implementation>
+ */
+//
+// Original Author:  Haiyun Teng
+//         Created:  Thu Nov 20 01:40:00 CET 2008
+// $Id$
+//
+//
+
+
+// system include files
+#include <memory>
+
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+
+// user special files
+#include <FWCore/Framework/interface/ESHandle.h>
+#include <SimDataFormats/Track/interface/SimTrack.h>
+#include <SimDataFormats/TrackingHit/interface/PSimHit.h>
+#include <SimDataFormats/RPCDigiSimLink/interface/RPCDigiSimLink.h>
+#include <DataFormats/RPCRecHit/interface/RPCRecHit.h>
+#include <DataFormats/DetId/interface/DetId.h>
+#include <DataFormats/MuonDetId/interface/RPCDetId.h>
+#include <Geometry/RPCGeometry/interface/RPCRoll.h>
+#include <Geometry/CommonDetUnit/interface/GeomDetUnit.h>
+#include <Geometry/RPCGeometry/interface/RPCGeometry.h>
+#include <Geometry/Records/interface/MuonGeometryRecord.h>
+#include <DataFormats/RPCRecHit/interface/RPCRecHitCollection.h>
+#include <SimDataFormats/TrackingHit/interface/PSimHitContainer.h>
+#include <SimDataFormats/Track/interface/SimTrackContainer.h>
+#include <iostream>
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/Common/interface/DetSet.h"
+#include "DataFormats/TrajectorySeed/interface/TrajectorySeedCollection.h"
+#include <DataFormats/TrackingRecHit/interface/TrackingRecHit.h>
+#include <DataFormats/GeometryVector/interface/Phi.h>
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include <CommonTools/UtilAlgos/interface/TFileService.h>
+#include "TH1.h"
+
+//C++
+//#include <vector>
+
+
+// using name space
+using namespace std;
+using namespace edm;
+
+//
+// class decleration
+//
+
+class RPCSeedValidator : public edm::EDAnalyzer {
+    public:
+        explicit RPCSeedValidator(const edm::ParameterSet&);
+        ~RPCSeedValidator();
+
+
+    private:
+        virtual void beginJob();
+        virtual void analyze(const edm::Event&, const edm::EventSetup&);
+        virtual void endJob();
+
+        void findsimHitfromSeedrecHit(const edm::ESHandle<RPCGeometry>& rpcGeometry, std::vector<GlobalPoint>& simHitRPCPos, std::vector<GlobalPoint>& recHitRPCPos, const std::vector<GlobalPoint>& simHitPositionCollection, const std::vector<unsigned int>& recHitNumberforsimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedrecHitPositionCollection);
+
+        // ----------member data ---------------------------
+        edm::InputTag SimHitTag_;
+        edm::InputTag SimTrackTag_;
+        edm::InputTag RPCRecHitTag_;
+        edm::InputTag RPCDigiSimLinkTag_;
+        edm::InputTag TrajectorySeedCollectionTag_;
+        bool debug;
+        double RSDThreshold;
+        unsigned int recHitNumberTH;
+        unsigned int codeTH;
+        double upper_limit_pt;
+
+        // Validation inform
+        unsigned int NumberofSeed;
+        unsigned int NumberofReco;
+        unsigned int NumberofrecHit;
+        double simPtforTrack;
+        double simPtatRef;
+        double recPtatRef;
+        Geom::Phi<double> recPtDirection;
+        Geom::Phi<double> simPtDirection;
+        double deltaPt;
+        double Spt;
+        unsigned int NumberofGood;
+        unsigned int NumberofFake;
+        unsigned int NumberofLost;
+        double simBendingatRef;
+        double recBendingatRef;
+        double deltaBendingatRef;
+        int clockwiseBendingatRef;
+        int EventNumber;
+
+        // Histogram
+        TH1D* SeedReco;
+
+        TH1D* SeedLost;
+        TH1D* SeedGood;
+        TH1D* SeedFake;
+        TH1D* SeedChargeCheck;
+        TH1D* SeedChargeCheckGood;
+        TH1D* SeedBendingPhiSim;
+        TH1D* SeedBendingPhiReco;
+        TH1D* SeedBendingPhiRecowrtSim;
+        TH1D* SeedBendingPhiRecowrtSimGood;
+        TH1D* SeedBendingPhiwrtChargeCheck;
+        TH1D* SeedBendingPhiwrtChargeCheckGood;
+        TH1D* SeedPhiSimatBending;
+        TH1D* SeedPhiRecoatBending;
+        TH1D* SeedreverseBendingEvent;
+        TH1D* deltaSeedBendingPhi;
+        TH1D* correctdeltaPtValue;
+        TH1D* SeedPtfullScale;
+        TH1D* SeedPtfullScaleGood;
+        TH1D* SeedPtfullScalewithoutUpperLimit;
+        TH1D* SeedPtfullScalewithoutUpperLimitGood;
+        TH1D* SeeddeltaPtfullScale;
+        TH1D* SeeddeltaPtfullScaleGood;
+        TH1D* SeeddeltaPtfullScalewithoutUpperLimit;
+        TH1D* SeeddeltaPtfullScalewithoutUpperLimitGood;
+        TH1D* SeedPhi;
+        TH1D* SeeddeltaPhifullScale;
+        TH1D* bestSeedPtfullScale;
+        TH1D* bestSeedPtfullScalewithoutUpperLimit;
+        TH1D* bestSeeddeltaPtfullScale;
+        TH1D* bestSeeddeltaPtfullScalewithoutUpperLimit;
+        TH1D* bestSeedPhi;
+        TH1D* bestSeeddeltaPhifullScale;
+        TH1D* SimPtfullScale;
+        TH1D* SimPhi;
+
+        TH1D* FakeSeed;
+
+        TH1D* GhostSeed;
+};
+
+//
+// constants, enums and typedefs
+//
+
+//
+// static data member definitions
+//
+bool lessR(const GlobalPoint& it1, const GlobalPoint& it2) {
+    // Don't need to use value() in Geom::Phi to short
+    return (it1.perp() < it2.perp());
+}
+//
+// constructors and destructor
+//
+RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
+
+    //now do what ever initialization is needed
+    SimHitTag_ = iConfig.getUntrackedParameter<edm::InputTag>("SimHitTag");
+    SimTrackTag_ = iConfig.getUntrackedParameter<edm::InputTag>("SimTrackTag");
+    RPCRecHitTag_ = iConfig.getUntrackedParameter<edm::InputTag>("RPCRecHitTag"); 
+    RPCDigiSimLinkTag_ = iConfig.getUntrackedParameter<edm::InputTag>("RPCDigiSimLinkTag");
+    TrajectorySeedCollectionTag_ = iConfig.getUntrackedParameter<edm::InputTag>("TrajectorySeedCollectionTag");
+    debug = iConfig.getUntrackedParameter<bool>("debug");
+    RSDThreshold = iConfig.getUntrackedParameter<double>("RSDThreshold");
+    recHitNumberTH = iConfig.getUntrackedParameter<unsigned int>("recHitNumberTH");
+    codeTH = iConfig.getUntrackedParameter<unsigned int>("codeTH");
+    upper_limit_pt = iConfig.getUntrackedParameter<double>("upper_limit_pt");
+
+    // Booking histogrqam
+    edm::Service<TFileService> fs;
+    TFileDirectory validTrack = fs->mkdir("For_Valid_Track");
+    TFileDirectory invalidTrack = fs->mkdir("For_Invalid_Track");
+    TFileDirectory event = fs->mkdir("For_Event");
+
+    SeedReco = event.make<TH1D>("RecoSeed", "valide tracks", 10, 0, 9);
+    SeedLost = validTrack.make<TH1D>("SeedLost", "valid tracks lost or not", 3, 0, 2);
+    SeedGood = validTrack.make<TH1D>("SeedGood", "good seed belong to a valid non-lost track", 30, 0, 30);
+    SeedFake = validTrack.make<TH1D>("SeedFake", "fake seed belong to a valid non-lost track", 30, 0, 30);
+    //deltaPtValue = validTrack.make<TH1D>("deltaPtValue", "delta Pt Value @ refpoint", 400 , -20 , 20);
+    //deltaPtDirection = validTrack.make<TH1D>("deltaPtDirection", "delta Pt Direction @ ref point", 314 , -3.14 , 3.14);
+    SeedChargeCheck = validTrack.make<TH1D>("SeedChargeCheck", "valid seed charge reco x sim", 5, -2, 2);
+    SeedChargeCheckGood = validTrack.make<TH1D>("SeedChargeCheckGood", "good seed charge reco x sim", 5, -2, 2);
+    SeedBendingPhiReco = validTrack.make<TH1D>("SeedBendingPhiReco", "valid seed bending phi reco", 314, -3.14, 3.14);
+    SeedBendingPhiSim = validTrack.make<TH1D>("SeedBendingPhiSim", "valid seed bending phi sim", 314, -3.14, 3.14);
+    SeedBendingPhiRecowrtSim = validTrack.make<TH1D>("SeedBendingPhiRecowrtSim", "valid seed bending phi reco x sim / |reco x sim|", 5 , -2 , 2);
+    SeedBendingPhiRecowrtSimGood = validTrack.make<TH1D>("SeedBendingPhiRecowrtSimGood", "good seed bending phi reco x sim / |reco x sim|", 5 , -2 , 2);
+    SeedBendingPhiwrtChargeCheck = validTrack.make<TH1D>("SeedBendingPhiwrtChargeCheck", "valid seed bending phi sim x reco wrt Charge sim x reco", 5 , -2 , 2);
+    SeedBendingPhiwrtChargeCheckGood = validTrack.make<TH1D>("SeedBendingPhiwrtChargeCheckGood", "good seed bending phi sim x reco wrt Charge sim x reco", 5 , -2 , 2);
+    SeedPhiSimatBending = validTrack.make<TH1D>("SeedPhiSimatBending", "valid seed phi of sim at bending", 314, -3.14, 3.14);
+    SeedPhiRecoatBending = validTrack.make<TH1D>("SeedPhiRecoatBending", "valid seed phi of reco at bending", 314, -3.14, 3.14);
+    SeedreverseBendingEvent = validTrack.make<TH1D>("SeedreverseBendingEvent", "valid seed event when wrong bending happen", 5000, 0, 5000);
+    correctdeltaPtValue = validTrack.make<TH1D>("correctdeltaPtValue", "correct delta Pt Value @ refpoint", 200, -10, 10);
+    deltaSeedBendingPhi = validTrack.make<TH1D>("deltabendPhiofSimandRec", "valid seed delta bending phi of rec wrt sim", 314 , -3.14, 3.14);
+
+    SimPtfullScale = validTrack.make<TH1D>("PtofSimfullScale", "Pt of SimTrack @ref point full Scale", 220, -10, 210);
+    SimPhi = validTrack.make<TH1D>("SimPhi", "Pt Direction of SimTrack @ ref point", 314, -3.14, 3.14);
+    SeedPtfullScale = validTrack.make<TH1D>("PtofSeedfullScale", "Pt of Seed full Scale", 220, -10, 210);
+    SeedPtfullScaleGood = validTrack.make<TH1D>("PtofSeedfullScaleGood", "Pt of good Seed full Scale", 220, -10, 210);
+    SeedPtfullScalewithoutUpperLimit = validTrack.make<TH1D>("PtofSeedcutScale", "Pt of Seed without the upper limit full Scale", 120, -10, 110);
+    SeedPtfullScalewithoutUpperLimitGood = validTrack.make<TH1D>("PtofSeedcutScaleGood", "Pt of good Seed without the upper limit full Scale", 120, -10, 110);
+    SeeddeltaPtfullScale = validTrack.make<TH1D>("deltaPtofSeedfullScale", "Delta Pt of Seed full Scale", 400, -200, 200);
+    SeeddeltaPtfullScaleGood = validTrack.make<TH1D>("deltaPtofSeedfullScaleGood", "Delta Pt of good Seed full Scale" , 400 , -200, 200);
+    SeeddeltaPtfullScalewithoutUpperLimit = validTrack.make<TH1D>("deltaPtofSeedcutScale", "Delta Pt of Seed without the upper limit full Scale", 220, -110, 110);
+    SeeddeltaPtfullScalewithoutUpperLimitGood = validTrack.make<TH1D>("deltaPtofSeedcutScaleGood", "Delta Pt of good Seed without the upper limit full Scale", 220, -110, 110);
+    SeedPhi = validTrack.make<TH1D>("PtDirection", "Pt Direction of seed @ ref point", 314, -3.14, 3.14);
+    SeeddeltaPhifullScale = validTrack.make<TH1D>("deltaPtDirection", "delta Pt Direction of seed @ ref point", 314, -6.28, 6.28);
+
+    bestSeedPtfullScale = validTrack.make<TH1D>("PtofbestSeedfullScale", "Pt of best Seed full Scale", 220, -10, 210);
+    bestSeedPtfullScalewithoutUpperLimit = validTrack.make<TH1D>("PtofbestSeedcutScale", "Pt of best Seed without the upper limit full Scale", 120, -10, 110);
+    bestSeeddeltaPtfullScale = validTrack.make<TH1D>("deltaPtofbestSeedfullScale", "Delta Pt of best Seed full Scale", 400, -200, 200);
+    bestSeeddeltaPtfullScalewithoutUpperLimit = validTrack.make<TH1D>("deltaPtofbestSeedcutScale", "Delta Pt of best Seed without the upper limit full Scale", 220, -110, 110);
+    bestSeedPhi = validTrack.make<TH1D>("bestPtDirection", "Pt Direction of best seed @ ref point", 314, -3.14 , 3.14);
+    bestSeeddeltaPhifullScale = validTrack.make<TH1D>("beatdeltaPtDirection", "delta Pt Direction of best seed @ ref point", 314, -6.28, 6.28);
+
+    FakeSeed = invalidTrack.make<TH1D>("FakeSeed", "fake seed belong to a non-valid track", 10 , 0 , 10);
+
+    GhostSeed = event.make<TH1D>("GhostSeed", "ghost seed belong to none track", 10 , 0 , 10);
+
+    // Set simTrack index
+    EventNumber = 0;
+}
+
+
+RPCSeedValidator::~RPCSeedValidator() {
+
+    // do anything here that needs to be done at desctruction time
+    // (e.g. close files, deallocate resources etc.)
+
+}
+
+
+//
+// member functions
+//
+
+// ------------ method called to for each event  ------------
+void RPCSeedValidator::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+
+    using namespace edm;
+
+    /*
+#ifdef THIS_IS_AN_EVENT_EXAMPLE
+Handle<ExampleData> pIn;
+iEvent.getByLabel("example",pIn);
+#endif
+
+#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
+ESHandle<SetupData> pSetup;
+iSetup.get<SetupRecord>().get(pSetup);
+#endif
+     */
+
+    Handle<PSimHitContainer> pSimHits;
+    //iEvent.getByLabel("g4SimHits", "MuonRPCHits", pSimHits); 
+    iEvent.getByLabel(SimHitTag_, pSimHits);
+    Handle<SimTrackContainer> pSimTracks;
+    iEvent.getByLabel(SimTrackTag_, pSimTracks);
+    Handle<RPCRecHitCollection> pRPCRecHits;
+    iEvent.getByLabel(RPCRecHitTag_, pRPCRecHits);
+    edm::Handle< edm::DetSetVector<RPCDigiSimLink> > thelinkDigis;
+    iEvent.getByLabel("simMuonRPCDigis", "RPCDigiSimLink", thelinkDigis);
+    edm::Handle<TrajectorySeedCollection> pTrajectorySeedCollection;
+    iEvent.getByLabel(TrajectorySeedCollectionTag_, pTrajectorySeedCollection);
+
+    edm::ESHandle<RPCGeometry> rpcGeometry;
+    iSetup.get<MuonGeometryRecord>().get(rpcGeometry);
+
+    EventNumber++;
+    if(debug) cout << "Event "<< EventNumber << endl;
+    unsigned int totalSeedsinEvent = 0;
+    unsigned int RecoinEvent = 0;
+    int simCharge = 0;
+    unsigned int simTrackIndex = 0;
+    for(SimTrackContainer::const_iterator pSimTrack = pSimTracks->begin(); pSimTrack != pSimTracks->end(); pSimTrack++) {
+        simTrackIndex++;
+        // for test the bending of simHits
+        std::vector<GlobalPoint> simHitPositionCollection;
+        simHitPositionCollection.clear();
+        std::vector<GlobalVector> simHitMomentumCollection;
+        simHitMomentumCollection.clear();
+        std::vector<unsigned int> recHitNumberforsimHits;
+        recHitNumberforsimHits.clear();
+        std::vector<RPCRecHit> RPCRecHitsfromTrack;
+        RPCRecHitsfromTrack.clear();
+
+        std::vector<GlobalPoint> SeedrecHitPositionCollection;
+        SeedrecHitPositionCollection.clear();
+
+        int TrackId = pSimTrack->trackId();
+        int TrackType = pSimTrack->type();
+        if(debug) cout << "SimTrack id: " << TrackId << endl;
+        if(debug) cout << "SimTrack type: " << TrackType << endl;
+        //if(debug) cout << "SimTrack momentum: " << pSimTrack->momentum().Pt() << endl;
+
+        if(abs(TrackType) != 13)
+            continue;
+
+        simCharge = pSimTrack->charge();
+        simPtforTrack = pSimTrack->momentum().Pt();
+        if(debug) cout << "SimTrack momentum: " << simPtforTrack << endl;
+
+        // initiciate layer count array
+        int recHitsmore = 0;
+        int recHitsBarrelLayer[6];
+        for(unsigned int i = 0; i < 6; i++)
+            recHitsBarrelLayer[i] = 0;
+
+        for(PSimHitContainer::const_iterator pSimHit = pSimHits->begin(); pSimHit != pSimHits->end(); pSimHit++) {
+            int TrackId1 = pSimHit->trackId();
+            if(TrackId1 != TrackId)
+                continue;
+
+            // The particle type of the hit may differ from the particle type of the SimTrack with id trackId(). 
+            // This happends if the hit was created by a secondary track (e.g. a delta ray) originating from the trackId() and not existing as a separate SimTrack.
+            int Particletype1 = pSimHit->particleType();
+            if(Particletype1 != TrackType)
+                continue;
+
+            if(debug) cout << "SimHit particle type : " << Particletype1 << endl;
+            int DetUnitId1 = pSimHit->detUnitId();
+            DetId DetectorId1(DetUnitId1);
+            GeomDetEnumerators::SubDetector subDet = rpcGeometry->idToDetUnit(DetectorId1)->subDetector();
+            if(subDet != GeomDetEnumerators::RPCBarrel && subDet != GeomDetEnumerators::RPCEndcap)
+                continue;
+
+            // Now we only check barrel seed
+            if(subDet != GeomDetEnumerators::RPCBarrel)
+                continue;
+
+            if(debug) cout << "SimHit DetUnit id: " << DetUnitId1 << endl;
+            Local3DPoint HitPoint1 = pSimHit->entryPoint();
+            if(debug) cout << "SimHit local hit point: " << HitPoint1 << endl;
+            LocalVector Momentum1 = pSimHit->momentumAtEntry();
+            if(debug) cout << "SimHit local momentum: " << Momentum1 << endl;
+            unsigned int processType = pSimHit->processType();
+            if(debug) cout << "SimHit process type: " << processType << endl;
+
+            const RPCRoll * rpcRoll = rpcGeometry->roll(DetectorId1);
+            GlobalVector globalMomentum1 = rpcRoll->toGlobal(Momentum1);
+            GlobalPoint simHitPosition1 = rpcRoll->toGlobal(HitPoint1);
+            if(debug) cout << "At this simHit the global Position is " << simHitPosition1 << endl;
+            if(debug) cout << "At this simHit the global Pt value: " << globalMomentum1.perp() << ", Phi: " << globalMomentum1.phi() << ", in degree: " << globalMomentum1.phi().degrees() << endl;
+            simHitPositionCollection.push_back(simHitPosition1);
+            simHitMomentumCollection.push_back(globalMomentum1);
+            int firstStrip = -1;
+            int lastStrip = -1;
+            int DigiBX = 0;
+            if(debug) cout << "Checking DigiSimLink..." << endl;
+            for(edm::DetSetVector<RPCDigiSimLink>::const_iterator itlink = thelinkDigis->begin(); itlink != thelinkDigis->end(); itlink++) {
+                for(edm::DetSet<RPCDigiSimLink>::const_iterator digi_iter=itlink->data.begin(); digi_iter != itlink->data.end(); ++digi_iter) {
+                    int DetUnitId2 = digi_iter->getDetUnitId();
+                    int TrackId2 = digi_iter->getTrackId();
+                    Local3DPoint HitPoint2 = digi_iter->getEntryPoint();
+                    LocalVector Momentum2 = digi_iter->getMomentumAtEntry();
+                    int Particletype2 = digi_iter->getParticleType();
+                    if((DetUnitId1 == DetUnitId2) && (TrackId1 == TrackId2) && (Particletype1 == Particletype2)) {
+                        int Strip = digi_iter->getStrip();
+                        DigiBX = digi_iter->getBx();
+                        if(debug) cout << "Find Digi's Strip: " << Strip << endl;
+                        if(debug) cout << "Find Digi's BX: " << DigiBX << endl;
+                        if(debug) cout << "Find Digi's hit positin: " << HitPoint2 << endl;
+                        if(firstStrip == -1) {
+                            firstStrip = Strip;
+                            lastStrip = Strip;
+                        }
+                        if(Strip < firstStrip)
+                            firstStrip = Strip;
+                        if(Strip > lastStrip)
+                            lastStrip = Strip;
+                    }
+                }
+            }
+
+            RPCRecHitCollection::range RPCRecHitRange = pRPCRecHits->get(DetectorId1);
+            int associatedrecHitforsimHit = 0;
+            for(RPCRecHitCollection::const_iterator itRecHit = RPCRecHitRange.first; itRecHit != RPCRecHitRange.second; itRecHit++) {        
+                int firstRecStrip = itRecHit->firstClusterStrip();
+                int ClusterSize = itRecHit->clusterSize();
+                int recBX = itRecHit->BunchX();
+                bool isValid = itRecHit->isValid();
+                if(debug) cout << "RecHit 1st strip: " << firstRecStrip << endl;
+                if(debug) cout << "RecHit ClusterSize: " << ClusterSize << endl;
+                if(debug) cout << "RecHit BX: " << recBX << endl;
+                if(debug) cout << "RecHit Valid: " << isValid << endl;
+                if((firstRecStrip <= lastStrip)  && ((firstRecStrip + ClusterSize - 1) >= firstStrip) && isValid && recBX == DigiBX) {
+                    if(debug) cout << "Find SimHit-RecHit" << endl;
+                    LocalPoint reclpos = itRecHit->localPosition();
+                    const GeomDetUnit *rpcroll = rpcGeometry->idToDetUnit(DetectorId1);
+                    GlobalPoint recgpos = rpcroll->toGlobal(reclpos);
+                    if(debug) cout << " GlobalPosition: " << recgpos.x() << ", " << recgpos.y() << ", " << recgpos.z() << ";" << endl;
+                    if(debug) cout << "Push this recHit to stack for validation." << endl;
+                    associatedrecHitforsimHit++;
+                    RPCRecHitsfromTrack.push_back(*itRecHit);
+                    RPCDetId RPCId = itRecHit->rpcId();
+                    int Region = RPCId.region();
+                    int Ring = RPCId.ring();
+                    int Station = RPCId.station();
+                    int Layer = RPCId.layer();
+                    if(debug) cout << "RPC det is " << Region << ", " << Ring << ", " << Station << ", " << Layer << endl;
+                    if(Region == 0) {
+                        if(Station >= 3)
+                            recHitsBarrelLayer[1+Station] += 1;
+                        else {
+                            if(Station == 2)
+                                recHitsBarrelLayer[Layer+1] += 1;
+                            else
+                                recHitsBarrelLayer[Layer-1] += 1;
+                        }
+                    }
+                }
+            }
+            recHitNumberforsimHits.push_back(associatedrecHitforsimHit);
+            if(associatedrecHitforsimHit > 1) {
+                recHitsmore += (associatedrecHitforsimHit - 1);
+                if(debug) cout << "Find " << associatedrecHitforsimHit << " recHits in the same DetUnit" << endl;
+            }
+        }
+
+        // code for checking layer occupancy
+        NumberofrecHit = 0;
+        unsigned int code = 0;
+        for(unsigned int BarrelLayerIndex = 0; BarrelLayerIndex <= 5; BarrelLayerIndex++) {
+            if(recHitsBarrelLayer[BarrelLayerIndex] != 0) {
+                NumberofrecHit++;
+                unsigned value = 1;
+                for(unsigned int i = 0; i < BarrelLayerIndex; i++)
+                    value *= 2;
+                code += value;
+            }
+        }
+        if((NumberofrecHit >= recHitNumberTH) && (((int)code & (int)codeTH) == (int)codeTH))
+            NumberofReco = 1;
+        else
+            NumberofReco = 0;
+        if(debug) cout << "For simTrack " << simTrackIndex << " valid is " << NumberofReco << ". Core for this track is " << code << endl;
+
+        RecoinEvent += NumberofReco;
+        if(debug) cout << "Finding corresponding recHits in " << pTrajectorySeedCollection->size() << " seeds..." << endl;
+        NumberofSeed = 0;
+        Spt = -1.0;
+        recPtatRef = 0;
+        simPtatRef = 0;
+        deltaPt = 0;
+        // DetId of ref point
+        DetId det;
+        NumberofGood = 0;
+        NumberofFake = 0;
+        NumberofLost = 0;
+        TrajectorySeed SeedforTrack;
+
+        // For valid track check the good seed and fake seed of this track
+        if(NumberofReco == 1) {
+            bool bestSeedset = false;
+            for(TrajectorySeedCollection::const_iterator seed = pTrajectorySeedCollection->begin(); seed != pTrajectorySeedCollection->end(); seed++) {
+                unsigned int NumberofRecHitsinSeed = 0;
+                TrajectorySeed::range SeedRecHitsRange = seed->recHits();
+                SeedrecHitPositionCollection.clear();
+                for(TrajectorySeed::const_iterator itSeedRecHit = SeedRecHitsRange.first; itSeedRecHit != SeedRecHitsRange.second; itSeedRecHit++) {
+                    LocalPoint seedlpos = itSeedRecHit->localPosition();
+                    DetId seedRPCId = itSeedRecHit->geographicalId();
+                    const GeomDetUnit *rpcroll = rpcGeometry->idToDetUnit(seedRPCId);
+                    GlobalPoint seedgpos = rpcroll->toGlobal(seedlpos);
+                    SeedrecHitPositionCollection.push_back(seedgpos);
+                    if(debug) cout << "GlobalPosition in seed's recHit: " << seedgpos.x() << ", " << seedgpos.y() << ", " << seedgpos.z() << ". On DetId: " << seedRPCId.rawId() << endl;
+                    for(std::vector<RPCRecHit>::const_iterator it = RPCRecHitsfromTrack.begin(); it != RPCRecHitsfromTrack.end(); it++) {
+                        // This is mot implented in RPCRecHit class
+                        //TrackingRecHit::SharedInputType type = (TrackingRecHit::SharedInputType)(0);
+                        //bool isthesame = itSeedRecHit->sharesInput(&(*it), type);
+                        LocalPoint reclpos = it->localPosition();
+                        RPCDetId recRPCId = it->rpcId();
+                        const GeomDetUnit *rpcroll = rpcGeometry->idToDetUnit(recRPCId);
+                        GlobalPoint recgpos = rpcroll->toGlobal(reclpos);
+                        if(debug) cout << "GlobalPosition in stack's recHit: " << recgpos.x() << ", " << recgpos.y() << ", " << recgpos.z() << ". On RPCRollId: " << recRPCId.rawId() << endl;
+                        if(seedgpos.x() == recgpos.x() && seedgpos.y() == recgpos.y() && seedgpos.z() == recgpos.z()) {
+                            if(debug) cout << "Find one recHit in seed corresponding to track " << TrackId << endl;
+                            NumberofRecHitsinSeed++;
+                        }
+                    }
+                }
+
+                if(NumberofRecHitsinSeed == seed->nHits()) {
+                    if(debug) cout << "Find a good seed for this track" << endl;
+                    NumberofGood++;
+                    NumberofSeed++;
+                }        
+                if(NumberofRecHitsinSeed > 0 && NumberofRecHitsinSeed < seed->nHits()) {
+                    if(debug) cout << "Find a fake seed for this track" << endl;
+                    NumberofSeed++;
+                    NumberofFake++;
+                }
+
+                if(NumberofRecHitsinSeed > 0) {
+                    LocalVector momentum = seed->startingState().parameters().momentum();
+                    std::vector<float> seed_error = seed->startingState().errorMatrix();
+                    double Spt_error = seed_error[0];
+                    if(debug) cout << "Find " << Spt_error << " Spt_error in this seed for track " << TrackId << endl;
+                    if(debug) cout << "Find " << NumberofRecHitsinSeed << " recHits in this seed for track " << TrackId << endl;
+
+                    det = seed->startingState().detId();
+                    GlobalVector gP = rpcGeometry->idToDetUnit(det)->toGlobal(momentum);
+                    recPtatRef = gP.perp();
+                    recPtDirection = gP.phi();
+
+                    // For pt we just care the seed is good
+                    if(Spt_error < Spt || Spt == -1.0) {
+                        bestSeedset = true;
+                        SeedforTrack = (*seed);
+                        Spt = Spt_error;
+                    }
+
+                    if(debug) cout << "Comparing the sim and rec bending for " << SeedrecHitPositionCollection.size() << " seed hits." << endl;
+                    std::vector<GlobalPoint> simHitRPCPos;
+                    std::vector<GlobalPoint> recHitRPCPos;
+                    simHitRPCPos.clear();
+                    recHitRPCPos.clear();
+                    sort(SeedrecHitPositionCollection.begin(), SeedrecHitPositionCollection.end(), lessR);
+                    findsimHitfromSeedrecHit(rpcGeometry, simHitRPCPos, recHitRPCPos, simHitPositionCollection, recHitNumberforsimHits, RPCRecHitsfromTrack, SeedrecHitPositionCollection);
+                    GlobalVector simHitRPCSeg1 = simHitRPCPos[1] - simHitRPCPos[0];
+                    GlobalVector simHitRPCSeg2 = simHitRPCPos[3] - simHitRPCPos[2];
+                    double simSegbendPhi = (simHitRPCSeg2.phi()-simHitRPCSeg1.phi()).value();
+                    GlobalVector recHitRPCSeg1 = recHitRPCPos[1] - recHitRPCPos[0];
+                    GlobalVector recHitRPCSeg2 = recHitRPCPos[3] - recHitRPCPos[2];
+                    double recSegbendPhi = (recHitRPCSeg2.phi()-recHitRPCSeg1.phi()).value();
+                    double diffbendPhi = recSegbendPhi - simSegbendPhi;
+                    if(debug) cout << "simSegbendPhi is " << simSegbendPhi << ", recSegbendPhi is " << recSegbendPhi << ", ratio is " << recSegbendPhi/simSegbendPhi  << ", diffbendPhi is " << diffbendPhi << endl;
+                    int recoCharge = seed->startingState().parameters().charge();
+                    if(debug) cout << "Charge of reco is: " << recoCharge << ", charge of sim is: " << simCharge << endl;
+                    SeedChargeCheck->Fill(recoCharge*simCharge);
+                    simBendingatRef = simSegbendPhi;
+                    recBendingatRef = recSegbendPhi;
+                    deltaBendingatRef = diffbendPhi;
+                    SeedBendingPhiSim->Fill(simBendingatRef);
+                    SeedBendingPhiReco->Fill(recBendingatRef);
+                    SeedBendingPhiRecowrtSim->Fill(simBendingatRef*recBendingatRef/fabs(simBendingatRef*recBendingatRef));
+                    deltaSeedBendingPhi->Fill(diffbendPhi);
+                    SeedBendingPhiwrtChargeCheck->Fill(simBendingatRef*recBendingatRef/fabs(simBendingatRef*recBendingatRef)*recoCharge*simCharge);
+                    if(NumberofRecHitsinSeed == seed->nHits()) {
+                        SeedChargeCheckGood->Fill(recoCharge*simCharge);
+                        SeedBendingPhiRecowrtSimGood->Fill(simBendingatRef*recBendingatRef/fabs(simBendingatRef*recBendingatRef));
+                        SeedBendingPhiwrtChargeCheckGood->Fill(simBendingatRef*recBendingatRef/fabs(simBendingatRef*recBendingatRef)*recoCharge*simCharge);
+                    if(recoCharge*simCharge != 1) {
+                        SeedPhiSimatBending->Fill(simHitRPCPos[2].phi());
+                        SeedPhiRecoatBending->Fill(recHitRPCPos[2].phi());
+                        if(debug) cout << "Wrong bending in event "<< EventNumber << ". Sim phi " << simHitRPCPos[2].phi() << ", Reco phi " << recHitRPCPos[2].phi() << endl;
+                    }
+                    
+                    }
+
+                    // Get simPt at Ref
+                    simPtatRef = 0;
+                    bool isset = false;
+                    for(PSimHitContainer::const_iterator pSimHit = pSimHits->begin(); pSimHit != pSimHits->end(); pSimHit++) {
+                        int TrackId2 = pSimHit->trackId();
+                        if (TrackId2 != TrackId)
+                            continue;
+                        int Particletype2 = pSimHit->particleType();
+                        if(Particletype2 != TrackType)
+                            continue;
+                        DetId DetectorId2(pSimHit->detUnitId());
+                        if(det == DetectorId2 && isset == false) {
+                            LocalVector Momentum2 = pSimHit->momentumAtEntry();
+                            const RPCRoll * rpcRoll2 = rpcGeometry->roll(DetectorId2);
+                            GlobalVector globalMomentum2 = rpcRoll2->toGlobal(Momentum2);
+                            GlobalPoint SimEntryPosition = rpcRoll2->toGlobal(pSimHit->entryPoint());
+                            GlobalPoint SimLeavePosition = rpcRoll2->toGlobal(pSimHit->exitPoint());
+                            simPtatRef = globalMomentum2.perp();
+                            simPtDirection = globalMomentum2.phi(); 
+                            if(debug) cout << "@ ref simHit's entry Position is: " << SimEntryPosition.x() << ", " << SimEntryPosition.y() << ", " << SimEntryPosition.z() << endl;
+                            if(debug) cout << "@ ref simHit's leave Position is: " << SimLeavePosition.x() << ", " << SimLeavePosition.y() << ", " << SimLeavePosition.z() << endl;
+                            GlobalPoint recHitPosition = rpcRoll2->toGlobal(seed->startingState().parameters().position());
+                            if(debug) cout << "@ ref recHit's Position is: " << recHitPosition.x() << ", " << recHitPosition.y() << ", " << recHitPosition.z() << endl;
+                            if(debug) cout << "@ ref simHit's Pt and direction is: " << simPtatRef << ", " << simPtDirection << endl;
+                            if(debug) cout << "@ ref recHit's Pt and direction is: " << recPtatRef << ", " << recPtDirection << endl;
+                            isset = true;
+                        }
+                    }
+                    correctdeltaPtValue->Fill(recPtatRef*recSegbendPhi/simSegbendPhi-simPtatRef);
+
+                    deltaPt = recPtatRef - simPtatRef;
+                    if(debug) cout << "Find recPt " << recPtatRef << " in this track " << TrackId << endl;
+                    if(debug) cout << "Find Spt_vs_Pt " << Spt << " in this track " << TrackId << endl;
+                    if(debug) cout << "Find " << NumberofSeed << "th seed in this track " << TrackId << endl;
+                    SeedPtfullScale->Fill(recPtatRef);
+                    SeeddeltaPtfullScale->Fill(deltaPt);
+                    SeedPhi->Fill(recPtDirection.value());
+                    SeeddeltaPhifullScale->Fill(recPtDirection.value() - simPtDirection.value());
+                    if(NumberofRecHitsinSeed == seed->nHits()) {
+                        SeedPtfullScaleGood->Fill(recPtatRef);
+                        SeeddeltaPtfullScaleGood->Fill(deltaPt);
+                    }
+                    if(recoCharge*simCharge != 0) {
+                        SeedPtfullScalewithoutUpperLimit->Fill(recPtatRef);
+                        SeeddeltaPtfullScalewithoutUpperLimit->Fill(deltaPt);
+                        if(NumberofRecHitsinSeed == seed->nHits()) {
+                            SeedPtfullScalewithoutUpperLimitGood->Fill(recPtatRef);
+                            SeeddeltaPtfullScalewithoutUpperLimitGood->Fill(deltaPt);
+                        }
+                    }
+                }
+            }
+
+            if(bestSeedset == true) {
+                LocalVector momentum = SeedforTrack.startingState().parameters().momentum();
+                std::vector<float> seed_error = SeedforTrack.startingState().errorMatrix();
+                double Spt_error = seed_error[0];
+                if(debug) cout << "Find best " << Spt_error << " Spt_error in this seed for track " << TrackId << endl;
+                det = SeedforTrack.startingState().detId();
+                GlobalVector gP = rpcGeometry->idToDetUnit(det)->toGlobal(momentum);
+                recPtatRef = gP.perp();
+                recPtDirection = gP.phi();
+                Spt = Spt_error;
+
+                int recoCharge = SeedforTrack.startingState().parameters().charge();
+                if(debug) cout << "Charge of reco is: " << recoCharge << ", charge of sim is: " << simCharge << endl;
+                // Get simPt at Ref
+                simPtatRef = 0;
+                bool isset = false;
+                for(PSimHitContainer::const_iterator pSimHit = pSimHits->begin(); pSimHit != pSimHits->end(); pSimHit++) {
+                    int TrackId2 = pSimHit->trackId();
+                    if (TrackId2 != TrackId)
+                        continue;
+                    int Particletype2 = pSimHit->particleType();
+                    if(Particletype2 != TrackType)
+                        continue;
+                    DetId DetectorId2(pSimHit->detUnitId());
+                    if(det == DetectorId2 && isset == false) {
+                        LocalVector Momentum2 = pSimHit->momentumAtEntry();
+                        const RPCRoll * rpcRoll2 = rpcGeometry->roll(DetectorId2);
+                        GlobalVector globalMomentum2 = rpcRoll2->toGlobal(Momentum2);
+                        GlobalPoint SimEntryPosition = rpcRoll2->toGlobal(pSimHit->entryPoint());
+                        GlobalPoint SimLeavePosition = rpcRoll2->toGlobal(pSimHit->exitPoint());
+                        simPtatRef = globalMomentum2.perp();
+                        simPtDirection = globalMomentum2.phi(); 
+                        if(debug) cout << "@ ref simHit's entry Position is: " << SimEntryPosition.x() << ", " << SimEntryPosition.y() << ", " << SimEntryPosition.z() << endl;
+                        if(debug) cout << "@ ref simHit's leave Position is: " << SimLeavePosition.x() << ", " << SimLeavePosition.y() << ", " << SimLeavePosition.z() << endl;
+                        GlobalPoint recHitPosition = rpcRoll2->toGlobal(SeedforTrack.startingState().parameters().position());
+                        if(debug) cout << "@ ref recHit's Position is: " << recHitPosition.x() << ", " << recHitPosition.y() << ", " << recHitPosition.z() << endl;
+                        if(debug) cout << "@ ref simHit's Pt and direction is: " << simPtatRef << ", " << simPtDirection << endl;
+                        if(debug) cout << "@ ref recHit's Pt and direction is: " << recPtatRef << ", " << recPtDirection << endl;
+                        isset = true;
+                    }
+                }
+
+                deltaPt = recPtatRef - simPtatRef;
+                if(debug) cout << "Find best recPt " << recPtatRef << " in this track " << TrackId << endl;
+                if(debug) cout << "Find best Spt_vs_Pt " << Spt << " in this track " << TrackId << endl;
+                if(debug) cout << "Find " << NumberofSeed << " seeds in this track " << TrackId << endl;
+                bestSeedPtfullScale->Fill(recPtatRef);
+                bestSeeddeltaPtfullScale->Fill(deltaPt);
+                bestSeedPhi->Fill(recPtDirection.value());
+                bestSeeddeltaPhifullScale->Fill(recPtDirection.value() - simPtDirection.value());
+                if(recoCharge*simCharge != 0) {
+                    bestSeedPtfullScalewithoutUpperLimit->Fill(recPtatRef);
+                    bestSeeddeltaPtfullScalewithoutUpperLimit->Fill(deltaPt);                        
+                }
+
+                SimPtfullScale->Fill(simPtatRef);
+                SimPhi->Fill(simPtDirection.value());
+            }
+            // Count total seed
+            totalSeedsinEvent += NumberofSeed;
+
+            if(NumberofSeed == 0)
+                NumberofLost = 1;
+            else
+                NumberofLost = 0;
+            if(debug) cout << "For this valid track we find " << NumberofGood << " good seeds and " << NumberofFake << " fake seeds" << endl;
+            SeedLost->Fill(NumberofLost);
+
+            if(NumberofLost == 0) {
+                SeedGood->Fill(NumberofGood);
+                SeedFake->Fill(NumberofFake);
+            }
+            else
+                if(debug) cout << "For this valid track we find none good seeds" << endl;
+        }
+        else {
+            for(TrajectorySeedCollection::const_iterator seed = pTrajectorySeedCollection->begin(); seed != pTrajectorySeedCollection->end(); seed++) {
+                unsigned int NumberofRecHitsinSeed = 0;
+                TrajectorySeed::range SeedRecHitsRange = seed->recHits();
+                for(TrajectorySeed::const_iterator itSeedRecHit = SeedRecHitsRange.first; itSeedRecHit != SeedRecHitsRange.second; itSeedRecHit++) {
+                    LocalPoint seedlpos = itSeedRecHit->localPosition();
+                    DetId seedRPCId = itSeedRecHit->geographicalId();
+                    const GeomDetUnit *rpcroll = rpcGeometry->idToDetUnit(seedRPCId);
+                    GlobalPoint seedgpos = rpcroll->toGlobal(seedlpos);
+                    if(debug) cout << " GlobalPosition in seed's recHit: " << seedgpos.x() << ", " << seedgpos.y() << ", " << seedgpos.z() << ";" << endl;
+                    for(std::vector<RPCRecHit>::const_iterator it = RPCRecHitsfromTrack.begin(); it != RPCRecHitsfromTrack.end(); it++) {
+                        // This is mot implented in RPCRecHit class
+                        //TrackingRecHit::SharedInputType type = (TrackingRecHit::SharedInputType)(0);
+                        //bool isthesame = itSeedRecHit->sharesInput(&(*it), type);
+                        LocalPoint reclpos = it->localPosition();
+                        DetId recRPCId = it->rpcId();
+                        const GeomDetUnit *rpcroll = rpcGeometry->idToDetUnit(recRPCId);
+                        GlobalPoint recgpos = rpcroll->toGlobal(reclpos);
+                        if(debug) cout << " GlobalPosition in stack's recHit: " << recgpos.x() << ", " << recgpos.y() << ", " << recgpos.z() << ";" << endl;
+                        if(seedgpos.x() == recgpos.x() && seedgpos.y() == recgpos.y() && seedgpos.z() == recgpos.z()) {
+                            if(debug) cout << "Find one recHit in seed corresponding to track " << TrackId << endl;
+                            NumberofRecHitsinSeed++;
+                        }
+                    }
+
+                }
+                std::vector<float> seed_error = seed->startingState().errorMatrix();
+                double Spt_error = seed_error[0];
+                if(debug) cout << "Find " << Spt_error << " Spt_error in this seed for track " << TrackId << endl;
+                if(debug) cout << "Find " << NumberofRecHitsinSeed << " recHits in this seed for track " << TrackId << endl;
+
+                if(NumberofRecHitsinSeed != 0)
+                    NumberofFake++;
+            }
+
+            // Count total seed
+            totalSeedsinEvent += NumberofFake;
+
+            if(debug) cout << "For this unvalid track we find " << NumberofFake << " seeds" << endl;
+            FakeSeed->Fill(NumberofFake);
+        }
+        // all the recoable seed/track in event
+        SeedReco->Fill(RecoinEvent);
+        unsigned nosieSeedsinEvent = pTrajectorySeedCollection->size() - totalSeedsinEvent;
+        if(debug) cout << "In this event we find " << nosieSeedsinEvent << " ghost seeds which is not belong to any tracks" << endl;
+        GhostSeed->Fill(nosieSeedsinEvent);
+    }
+}
+
+
+void RPCSeedValidator::findsimHitfromSeedrecHit(const edm::ESHandle<RPCGeometry>& rpcGeometry, std::vector<GlobalPoint>& simHitRPCPos, std::vector<GlobalPoint>& recHitRPCPos, const std::vector<GlobalPoint>& simHitPositionCollection, const std::vector<unsigned int>& recHitNumberforsimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedrecHitPositionCollection) {
+
+    for(std::vector<GlobalPoint>::const_iterator seedrecHitPositionIter = SeedrecHitPositionCollection.begin(); seedrecHitPositionIter != SeedrecHitPositionCollection.end(); seedrecHitPositionIter++) {
+        if(debug) cout << "Checking one recHit position in seed: " << (*seedrecHitPositionIter) << endl;
+        //recHitRPCPos.push_back((*seedrecHitPositionIter));
+        unsigned int recHitIndex = 0;
+        unsigned int simHitIndex = 0;
+        unsigned int NumberofrecHitforsimHit = recHitNumberforsimHits[simHitIndex];
+        for(recHitIndex = 0; recHitIndex < RPCRecHitsfromTrack.size(); recHitIndex++) {
+            // Find the simHit for current recHit
+            while(NumberofrecHitforsimHit == 0) {
+                simHitIndex++;
+                NumberofrecHitforsimHit = recHitNumberforsimHits[simHitIndex];
+            }
+            if(debug) cout << "Find simHit index " << simHitIndex << " and it has " << NumberofrecHitforsimHit << " recHits." << endl;
+            LocalPoint lpos = RPCRecHitsfromTrack[recHitIndex].localPosition();
+            RPCDetId RPCId = RPCRecHitsfromTrack[recHitIndex].rpcId();
+            const GeomDetUnit *rpcRoll = rpcGeometry->idToDetUnit(RPCId);
+            GlobalPoint gpos = rpcRoll->toGlobal(lpos);
+            //if(debug) cout << endl;
+            if(debug) cout << "Checking for recHit from track, position: " << gpos << endl;
+            if((gpos.x() == seedrecHitPositionIter->x()) && (gpos.y() == seedrecHitPositionIter->y()) && (gpos.z() == seedrecHitPositionIter->z())) {
+                simHitRPCPos.push_back(simHitPositionCollection[simHitIndex]);
+                recHitRPCPos.push_back((*seedrecHitPositionIter));
+                if(debug) cout << "Find this simHit " << simHitIndex << " and save its position." << endl;
+                break;
+            }
+            NumberofrecHitforsimHit--;
+            if(NumberofrecHitforsimHit == 0) {
+                simHitIndex++;
+                NumberofrecHitforsimHit = recHitNumberforsimHits[simHitIndex];
+            }
+        }
+    }
+    if(debug) cout << "All " << recHitRPCPos.size() << " seed's recHit and correspond simHit position is saved in to array" << endl;
+}
+
+// ------------ method called once each job just before starting event loop  ------------
+void RPCSeedValidator::beginJob() {
+}
+
+// ------------ method called once each job just after ending the event loop  ------------
+void RPCSeedValidator::endJob() {
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(RPCSeedValidator);
