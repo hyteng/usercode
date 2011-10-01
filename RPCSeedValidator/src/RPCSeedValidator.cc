@@ -65,6 +65,13 @@ using namespace edm;
 // class decleration
 //
 
+class BendingPhiIndexType {
+    public:
+        BendingPhiIndexType() {m[0] = 0; m[1] = 0; m[2] = 0; m[3] = 0;};
+        BendingPhiIndexType(int a0, int a1, int a2, int a3) {m[0] = a0; m[1] = a1; m[2] = a2; m[3] = a3;};
+        int m[4];
+};
+
 class RPCSeedValidator : public edm::EDAnalyzer {
     public:
         explicit RPCSeedValidator(const edm::ParameterSet&);
@@ -76,13 +83,15 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         virtual void analyze(const edm::Event&, const edm::EventSetup&);
         virtual void endJob();
 
-        void GetTrackInfo(const SimTrack& theSimTrack);
-        void FindSeedforTrack();
-        void FindSimHitfromSeedRecHit(const edm::ESHandle<RPCGeometry>& theRPCGeometry, std::vector<GlobalPoint>& SimHitRPCPos, std::vector<GlobalPoint>& RecHitRPCPos, const std::vector<GlobalPoint>& SimHitPositionCollection, const std::vector<unsigned int>& RecHitNumberforSimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedRecHitPositionCollection);
+        void getTrackInfo(const SimTrack& theSimTrack);
+        void findSeedforTrack();
+        void findSimHitfromSeedRecHit(const edm::ESHandle<RPCGeometry>& theRPCGeometry, std::vector<GlobalPoint>& SimHitRPCPos, std::vector<GlobalPoint>& RecHitRPCPos, const std::vector<GlobalPoint>& SimHitPositionCollection, const std::vector<unsigned int>& RecHitNumberforSimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedRecHitPositionCollection);
         bool SegmentFilter(int theFilterType);
-        int GetRPCLayer(const RPCRecHit& theRPCRecHit);
-        void CompareSeedBending();
-        void GetSimPtatRef();
+        void scanOnePointCollection(int RPCLayer);
+        void getBendingPhiCandidate();
+        int getRPCLayer(const RPCRecHit& theRPCRecHit);
+        void compareSeedBending();
+        void getSimPtatRef();
         // ----------member data ---------------------------
         edm::InputTag SimHitTag_;
         edm::InputTag SimTrackTag_;
@@ -101,8 +110,10 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         unsigned int RecHitNumberTH;
         unsigned int CodeTH;
         unsigned int unCodeTH;
-        double TrackBendingPhiTH;
         int FilterType;
+        bool isVertexConstraint;
+        double SegmentBendingPhiTH;
+        double MaxBendingPhiTH;
         double SeedPurityTH;
 
         unsigned int RecHitNumber;
@@ -115,6 +126,12 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         std::vector<GlobalPoint> SeedRecHitPositionCollection;
         int RecHitNumberinRPCLayer[11];
         std::vector< std::vector<GlobalPoint> > RPCRecHitLayer;
+        GlobalPoint OnePointCollection[11];
+        std::vector<BendingPhiIndexType> BendingFilter;
+        std::vector<double> MaxBendingPhiCollection;
+        std::vector<double> SegmentBendingPhiCollection;
+        double MaxBendingPhi;
+        double SegmentBendingPhi;
 
         std::string theRootFileName;
         TFile *theFile;
@@ -180,8 +197,10 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     RecHitNumberTH = iConfig.getUntrackedParameter<unsigned int>("RecHitNumberTH");
     CodeTH = iConfig.getUntrackedParameter<unsigned int>("CodeTH");
     unCodeTH = iConfig.getUntrackedParameter<unsigned int>("unCodeTH");
-    TrackBendingPhiTH = iConfig.getUntrackedParameter<double>("TrackBendingPhiTH");
     FilterType = iConfig.getUntrackedParameter<int>("FilterType");
+    isVertexConstraint = iConfig.getUntrackedParameter<bool>("isVertexConstraint");
+    SegmentBendingPhiTH = iConfig.getUntrackedParameter<double>("SegmentBendingPhiTH");
+    MaxBendingPhiTH = iConfig.getUntrackedParameter<double>("MaxBendingPhiTH");
     SeedPurityTH = iConfig.getUntrackedParameter<double>("SeedPurityTH");
     theRootFileName = iConfig.getUntrackedParameter<string>("theRootFileName", "RPCValidationTree.root");
     // Booking histogrqam
@@ -263,11 +282,11 @@ void RPCSeedValidator::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         if(abs(SimTrackType) != 13)
             continue;
 
-        GetTrackInfo(*pSimTrack);
+        getTrackInfo(*pSimTrack);
     }
 }
 
-void RPCSeedValidator::GetTrackInfo(const SimTrack& theSimTrack) {
+void RPCSeedValidator::getTrackInfo(const SimTrack& theSimTrack) {
 
     // for test the bending of SimHits
     SimHitPositionCollection.clear();
@@ -372,7 +391,7 @@ void RPCSeedValidator::GetTrackInfo(const SimTrack& theSimTrack) {
                 if(debug) cout << " GlobalPosition: " << RecGlobalPosition << endl;
                 AssociatedRecHitforSimHit++;
                 RPCRecHitsfromTrack.push_back(*RPCRecHitIter);
-                int theRPCLayer = GetRPCLayer(*RPCRecHitIter);
+                int theRPCLayer = getRPCLayer(*RPCRecHitIter);
                 if(debug) cout << "Push this RecHit to layer " << theRPCLayer << " for Validation." << endl;
                 RecHitNumberinRPCLayer[theRPCLayer] += 1;
             }
@@ -407,10 +426,10 @@ void RPCSeedValidator::GetTrackInfo(const SimTrack& theSimTrack) {
 
     if(debug) cout << "Core for this track is " << theCode << ", SimTrack Valid is " << SimTrackValid << ", PassSegmentFilter: " << PassSegmentFilter << endl;
 
-    FindSeedforTrack();
+    findSeedforTrack();
 }
 
-void RPCSeedValidator::FindSeedforTrack() {
+void RPCSeedValidator::findSeedforTrack() {
 
     if(debug) cout << "Finding corresponding RecHits in " << pTrajectorySeedCollection->size() << " seeds..." << endl;
 
@@ -487,7 +506,7 @@ void RPCSeedValidator::FindSeedforTrack() {
                 RecDirectionPhiatRef = GP.phi().value();
                 
                 if(SeedPurity == 1.)
-                    CompareSeedBending();
+                    compareSeedBending();
                 else {
                     SimBendingEntryPositionX = 0;
                     SimBendingEntryPositionY = 0;
@@ -506,7 +525,7 @@ void RPCSeedValidator::FindSeedforTrack() {
                     RecBendingLastPhi = 0;
                 }
                 
-                GetSimPtatRef();
+                getSimPtatRef();
 
                 ExTree->Fill();
 
@@ -540,7 +559,6 @@ void RPCSeedValidator::FindSeedforTrack() {
                         NumberofRecHitsinSeed++;
                     }
                 }
-
             }
             SeedPurity = (double)NumberofRecHitsinSeed / (double)RPCSeedIter->nHits();
 
@@ -560,7 +578,7 @@ void RPCSeedValidator::FindSeedforTrack() {
     }
 }
 
-int RPCSeedValidator::GetRPCLayer(const RPCRecHit& theRPCRecHit) {
+int RPCSeedValidator::getRPCLayer(const RPCRecHit& theRPCRecHit) {
     int theRPCLayer;
     RPCDetId RPCId = theRPCRecHit.rpcId();
     int Region = RPCId.region();
@@ -588,10 +606,8 @@ int RPCSeedValidator::GetRPCLayer(const RPCRecHit& theRPCRecHit) {
 
 bool RPCSeedValidator::SegmentFilter(int theFilterType) {
 
-    std::vector<GlobalPoint> RPCRecHitPositionforSegment;
-    RPCRecHitPositionforSegment.clear();
     RPCRecHitLayer.clear();
-    for(unsigned int i = 0; i <= 11; i++) {
+    for(unsigned int i = 0; i < 11; i++) {
         std::vector<GlobalPoint> RPCRecHitTempLayer;
         RPCRecHitTempLayer.resize(0);
         RPCRecHitLayer.push_back(RPCRecHitTempLayer);
@@ -602,111 +618,120 @@ bool RPCSeedValidator::SegmentFilter(int theFilterType) {
         RPCDetId RecRPCId = RPCRecHitIter->rpcId();
         const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(RecRPCId);
         GlobalPoint RecGlobalPosition = theRPCRoll->toGlobal(RecLocalPosition);
-        int RPCLayer = GetRPCLayer(*RPCRecHitIter);
+        int RPCLayer = getRPCLayer(*RPCRecHitIter);
         if(debug) cout << "Track's RecHit in RPCLayer: " << RPCLayer << ", GlobalPosition: " << RecGlobalPosition << endl;
         RPCRecHitLayer[RPCLayer].push_back(RecGlobalPosition);
     }
 
+    if((FilterType == 1 || FilterType == 0) && isVertexConstraint == true) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+    }
+    if((FilterType == 1 || FilterType == 0) && isVertexConstraint == false) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+    }
+    if((FilterType == 2 || FilterType == 0) && isVertexConstraint == true) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+    }
+    if((FilterType == 2 || FilterType == 0) && isVertexConstraint == false) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+    }
+
+    MaxBendingPhiCollection.clear();
+    SegmentBendingPhiCollection.clear();
+    scanOnePointCollection(0);
+    
+    MaxBendingPhi = 0.;
+    for(unsigned int i = 0; i < MaxBendingPhiCollection.size(); i++) {
+        if(fabs(MaxBendingPhi) < MaxBendingPhiCollection[i])
+            MaxBendingPhi = MaxBendingPhiCollection[i];        
+    }
+    SegmentBendingPhi = 0.;
+    for(unsigned int i = 0; i < SegmentBendingPhiCollection.size(); i++) {
+        if(fabs(SegmentBendingPhi) < SegmentBendingPhiCollection[i])
+            SegmentBendingPhi = SegmentBendingPhiCollection[i];
+    }
+
     bool theSegmentFilterResult = false;
-    if(theFilterType < 0)
+    if(MaxBendingPhi >= MaxBendingPhiTH || SegmentBendingPhi >= SegmentBendingPhiTH)
+        theSegmentFilterResult = true;
+        
+    if(FilterType < 0)
         theSegmentFilterResult = true;
 
-    if(theFilterType == 1 || (theFilterType ==0 && RPCRecHitLayer[2].size() != 0)) {
-        std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter;
-        GlobalVector PatternSegment;
-        bool SegmentFilterResult = false;
-        TrackBendingPhi = 0.;
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter0 = RPCRecHitLayer[0].begin(); RPCRecHitPositionIter0 != RPCRecHitLayer[0].end(); RPCRecHitPositionIter0++) {
-            for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter1 = RPCRecHitLayer[1].begin(); RPCRecHitPositionIter1 != RPCRecHitLayer[1].end(); RPCRecHitPositionIter1++) {
-                for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter2 = RPCRecHitLayer[2].begin(); RPCRecHitPositionIter2 != RPCRecHitLayer[2].end(); RPCRecHitPositionIter2++) {
-                    for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter3 = RPCRecHitLayer[3].begin(); RPCRecHitPositionIter3 != RPCRecHitLayer[3].end(); RPCRecHitPositionIter3++) {
-                        GlobalVector Segment1 = (*RPCRecHitPositionIter1) - (*RPCRecHitPositionIter0);
-                        GlobalVector Segment2 = (*RPCRecHitPositionIter3) - (*RPCRecHitPositionIter2);
-                        double TempBendingPhi = (Segment2.phi() - Segment1.phi()).value();
-                        if(debug) cout << "sample position: " << (*RPCRecHitPositionIter0) << ", " << (*RPCRecHitPositionIter1) << ", " << (*RPCRecHitPositionIter2) << ", " << (*RPCRecHitPositionIter3) << ", TempBendingPhi: " << TempBendingPhi << endl;
-                        if(fabs(TempBendingPhi) >= fabs(TrackBendingPhi)) {
-                            TrackBendingPhi = TempBendingPhi;
-                            RPCRecHitPositionIter = RPCRecHitPositionIter3;
-                            PatternSegment = Segment2;
-                        }
-                    }
-                }
-            }
-        }
-
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter4 = RPCRecHitLayer[4].begin(); RPCRecHitPositionIter4 != RPCRecHitLayer[4].end(); RPCRecHitPositionIter4++) {
-            GlobalVector Segment21 = (*RPCRecHitPositionIter4) - (*RPCRecHitPositionIter);
-            double TempBendingPhi21 = (Segment21.phi() - PatternSegment.phi()).value();
-            if(debug) cout << "sample position: " << (*RPCRecHitPositionIter) << ", " << (*RPCRecHitPositionIter4) << ". TempBendingPhi21: " << TempBendingPhi21 << ". PatternSegment: " << PatternSegment.phi() << ", Segment21: " << Segment21.phi() << endl;
-            if(TempBendingPhi21 * TrackBendingPhi > 0)
-                SegmentFilterResult = true;
-        }
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter5 = RPCRecHitLayer[5].begin(); RPCRecHitPositionIter5 != RPCRecHitLayer[5].end(); RPCRecHitPositionIter5++) {
-            GlobalVector Segment22 = (*RPCRecHitPositionIter5) - (*RPCRecHitPositionIter);
-            double TempBendingPhi22 = (Segment22.phi() - PatternSegment.phi()).value();
-            if(debug) cout << "sample position: " << (*RPCRecHitPositionIter) << ", " << (*RPCRecHitPositionIter5) << ". TempBendingPhi22: " << TempBendingPhi22 << ". PatternSegment: " << PatternSegment.phi() << ", Segment22: " << Segment22.phi() << endl;
-            if(TempBendingPhi22 * TrackBendingPhi > 0)
-                SegmentFilterResult = true;
-        }
-
-        if(fabs(TrackBendingPhi) >= TrackBendingPhiTH && SegmentFilterResult == true)
-            theSegmentFilterResult = true;
-    }
-
-    if(theFilterType == 2 || (theFilterType ==0 && RPCRecHitLayer[2].size() == 0)) {
-        std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter;
-        GlobalVector PatternSegment;
-        bool SegmentFilterResult = false;
-        TrackBendingPhi = 0.;
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter0 = RPCRecHitLayer[0].begin(); RPCRecHitPositionIter0 != RPCRecHitLayer[0].end(); RPCRecHitPositionIter0++) {
-            for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter1 = RPCRecHitLayer[1].begin(); RPCRecHitPositionIter1 != RPCRecHitLayer[1].end(); RPCRecHitPositionIter1++) {
-                for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter3 = RPCRecHitLayer[3].begin(); RPCRecHitPositionIter3 != RPCRecHitLayer[3].end(); RPCRecHitPositionIter3++) {
-                    GlobalVector Segment1 = (*RPCRecHitPositionIter1) - (*RPCRecHitPositionIter0);
-                    GlobalVector Segment2 = (*RPCRecHitPositionIter3) - (*RPCRecHitPositionIter1);
-                    double TempBendingPhi = (Segment2.phi() - Segment1.phi()).value();
-                    if(debug) cout << "sample position: " << (*RPCRecHitPositionIter0) << ", " << (*RPCRecHitPositionIter1) << ", " << (*RPCRecHitPositionIter3) << ", TempBendingPhi: " << TempBendingPhi << endl;
-                    if(fabs(TempBendingPhi) >= fabs(TrackBendingPhi)) {
-                        TrackBendingPhi = TempBendingPhi;
-                        RPCRecHitPositionIter = RPCRecHitPositionIter1;
-                        PatternSegment = Segment2;
-                    }
-                }
-            }
-        }
-        
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter4 = RPCRecHitLayer[4].begin(); RPCRecHitPositionIter4 != RPCRecHitLayer[4].end(); RPCRecHitPositionIter4++) {
-            GlobalVector Segment21 = (*RPCRecHitPositionIter4) - (*RPCRecHitPositionIter);
-            double TempBendingPhi21 = (Segment21.phi() - PatternSegment.phi()).value();
-            if(debug) cout << "sample position: " << (*RPCRecHitPositionIter) << ", " << (*RPCRecHitPositionIter4) << ". TempBendingPhi21: " << TempBendingPhi21 << ". PatternSegment: " << PatternSegment.phi() << ", Segment21: " << Segment21.phi() << endl;
-            if(TempBendingPhi21 * TrackBendingPhi > 0)
-                SegmentFilterResult = true;
-        }
-        
-        for(std::vector<GlobalPoint>::const_iterator RPCRecHitPositionIter5 = RPCRecHitLayer[5].begin(); RPCRecHitPositionIter5 != RPCRecHitLayer[5].end(); RPCRecHitPositionIter5++) {
-            GlobalVector Segment22 = (*RPCRecHitPositionIter5) - (*RPCRecHitPositionIter);
-            double TempBendingPhi22 = (Segment22.phi() - PatternSegment.phi()).value();
-            if(debug) cout << "sample position: " << (*RPCRecHitPositionIter) << ", " << (*RPCRecHitPositionIter5) << ". TempBendingPhi22: " << TempBendingPhi22 << ". PatternSegment: " << PatternSegment.phi() << ", Segment22: " << Segment22.phi() << endl;
-            if(TempBendingPhi22 * TrackBendingPhi > 0)
-                SegmentFilterResult = true;
-        }
-
-        if(fabs(TrackBendingPhi) >= TrackBendingPhiTH && SegmentFilterResult == true)
-            theSegmentFilterResult = true;
-    }
-
     if(debug) cout << "Valid track TrackBendingPhi: " << TrackBendingPhi << ". theSegmentFilterResult: " << theSegmentFilterResult << endl;
-
     return theSegmentFilterResult;
 }
 
-void RPCSeedValidator::CompareSeedBending() {
+void RPCSeedValidator::scanOnePointCollection(int RPCLayer) {
+    if(debug) cout << "Position on layer " << RPCLayer << endl;
+    if(RPCRecHitLayer[RPCLayer].size() > 0)
+        for(unsigned int i = 0; i < RPCRecHitLayer[RPCLayer].size(); i++) {
+            OnePointCollection[RPCLayer] = RPCRecHitLayer[RPCLayer][i];
+            if(RPCLayer < 10)
+                scanOnePointCollection(RPCLayer+1);
+            else
+                getBendingPhiCandidate();
+        }
+    else {
+        OnePointCollection[RPCLayer] = GlobalPoint(0,0,0);
+        if(RPCLayer < 10)
+            scanOnePointCollection(RPCLayer+1);
+        else
+            getBendingPhiCandidate();
+    }
+}
+
+void RPCSeedValidator::getBendingPhiCandidate() {
+    double TempMaxBendingPhi = 0.;
+    double TempBendingPhi;
+    double TempSegmentBendingPhi = 0.;
+    for(unsigned int Index = 0; Index < BendingFilter.size(); Index++) {
+        int i = BendingFilter[Index].m[0];
+        int j = BendingFilter[Index].m[1];
+        int k = BendingFilter[Index].m[2];
+        int l = BendingFilter[Index].m[3];
+        if(OnePointCollection[i] == GlobalPoint(0,0,0) || OnePointCollection[j] == GlobalPoint(0,0,0) || OnePointCollection[k] == GlobalPoint(0,0,0) || OnePointCollection[l] == GlobalPoint(0,0,0))
+            continue;
+        Geom::Phi<float> SegmentPhi1;
+        Geom::Phi<float> SegmentPhi2;
+        if(i == j)
+            SegmentPhi1 = ((GlobalVector)(OnePointCollection[i] - GlobalPoint(0,0,0))).phi();
+        else
+            SegmentPhi1 = ((GlobalVector)(OnePointCollection[j] - OnePointCollection[i])).phi();
+        SegmentPhi2 = ((GlobalVector)(OnePointCollection[l] - OnePointCollection[k])).phi();
+        TempBendingPhi = (SegmentPhi2-SegmentPhi1).value();
+        if(fabs(TempMaxBendingPhi) < fabs(TempBendingPhi))
+            TempMaxBendingPhi = TempBendingPhi;
+
+        if(Index == 0)
+            TempSegmentBendingPhi = TempBendingPhi;
+    }
+    MaxBendingPhiCollection.push_back(TempMaxBendingPhi);
+    SegmentBendingPhiCollection.push_back(TempSegmentBendingPhi);
+}
+
+void RPCSeedValidator::compareSeedBending() {
     if(debug) cout << "Comparing the Sim and rec bending for " << SeedRecHitPositionCollection.size() << " seed hits." << endl;
     std::vector<GlobalPoint> SimHitRPCPos;
     std::vector<GlobalPoint> RecHitRPCPos;
     SimHitRPCPos.clear();
     RecHitRPCPos.clear();
     sort(SeedRecHitPositionCollection.begin(), SeedRecHitPositionCollection.end(), lessR);
-    FindSimHitfromSeedRecHit(theRPCGeometry, SimHitRPCPos, RecHitRPCPos, SimHitPositionCollection, RecHitNumberforSimHits, RPCRecHitsfromTrack, SeedRecHitPositionCollection);
+    findSimHitfromSeedRecHit(theRPCGeometry, SimHitRPCPos, RecHitRPCPos, SimHitPositionCollection, RecHitNumberforSimHits, RPCRecHitsfromTrack, SeedRecHitPositionCollection);
+    
     if(FilterType == 1) {
         GlobalVector SimHitRPCSeg1 = SimHitRPCPos[1] - SimHitRPCPos[0];
         GlobalVector SimHitRPCSeg2 = SimHitRPCPos[3] - SimHitRPCPos[2];
@@ -751,10 +776,11 @@ void RPCSeedValidator::CompareSeedBending() {
         RecBendingLastPhi = (RecHitRPCSegLast.phi() - RecHitRPCSeg1.phi()).value();
         RecBendingPhi = (RecHitRPCSeg2.phi()-RecHitRPCSeg1.phi()).value();
     }
+    
     if(debug) cout << "SimBendingPhi is " << SimBendingPhi << ", RecBendingPhi is " << RecBendingPhi << ", ratio is " << SimBendingPhi/RecBendingPhi  << ", diffbendPhi is " << (RecBendingPhi-SimBendingPhi) << ", RecBendingLastPhi is " << RecBendingLastPhi << endl;
 }
 
-void RPCSeedValidator::GetSimPtatRef() {
+void RPCSeedValidator::getSimPtatRef() {
     bool isset = false;
     for(PSimHitContainer::const_iterator pSimHit = pSimHits->begin(); pSimHit != pSimHits->end(); pSimHit++) {
         int TrackId1 = pSimHit->trackId();
@@ -781,7 +807,7 @@ void RPCSeedValidator::GetSimPtatRef() {
     }
 }
 
-void RPCSeedValidator::FindSimHitfromSeedRecHit(const edm::ESHandle<RPCGeometry>& theRPCGeometry, std::vector<GlobalPoint>& SimHitRPCPos, std::vector<GlobalPoint>& RecHitRPCPos, const std::vector<GlobalPoint>& SimHitPositionCollection, const std::vector<unsigned int>& RecHitNumberforSimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedRecHitPositionCollection) {
+void RPCSeedValidator::findSimHitfromSeedRecHit(const edm::ESHandle<RPCGeometry>& theRPCGeometry, std::vector<GlobalPoint>& SimHitRPCPos, std::vector<GlobalPoint>& RecHitRPCPos, const std::vector<GlobalPoint>& SimHitPositionCollection, const std::vector<unsigned int>& RecHitNumberforSimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedRecHitPositionCollection) {
 
     for(std::vector<GlobalPoint>::const_iterator seedRecHitPositionIter = SeedRecHitPositionCollection.begin(); seedRecHitPositionIter != SeedRecHitPositionCollection.end(); seedRecHitPositionIter++) {
         if(debug) cout << "Checking one RecHit position in seed: " << (*seedRecHitPositionIter) << endl;
