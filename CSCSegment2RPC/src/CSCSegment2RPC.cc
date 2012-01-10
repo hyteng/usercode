@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id$
+// $Id: CSCSegment2RPC.cc,v 1.3 2012/01/09 14:21:53 hyteng Exp $
 //
 //
 
@@ -517,7 +517,8 @@ void CSCSegment2RPC::sampleCSCSegments() {
         // One chamber has only 1 segment to avoid electron shower segments, and require at least 2 segments for this event
         if(debug) cout << "CSCSegmentsCounter: " << CSCSegmentsCounter[CSCId] << endl;
 
-        if(CSCSegmentsCounter[CSCId] == 1 && pCSCSegments->size() >= 2) {    
+        if(CSCSegmentsCounter[CSCId] == 1) {
+        //if(CSCSegmentsCounter[CSCId] == 1 && pCSCSegments->size() >= 2) {
             LocalPoint SegmentLocalPosition= CSCSegIter->localPosition();
             LocalVector SegmentLocalDirection=CSCSegIter->localDirection();
             if(debug) cout << "CSC segment local position: " << SegmentLocalPosition << endl;
