@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.3 2012/01/09 14:21:53 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.4 2012/01/10 13:59:23 hyteng Exp $
 //
 //
 
@@ -512,8 +512,8 @@ void CSCSegment2RPC::sampleCSCSegments() {
         if(isCSCSegmentFilter == true && !filterCSCSegment(*CSCSegIter))
             continue;
         */
-        if(!filterSegmentEta(*CSCSegIter))
-            continue;
+        //if(!filterSegmentEta(*CSCSegIter))
+            //continue;
         // One chamber has only 1 segment to avoid electron shower segments, and require at least 2 segments for this event
         if(debug) cout << "CSCSegmentsCounter: " << CSCSegmentsCounter[CSCId] << endl;
 
