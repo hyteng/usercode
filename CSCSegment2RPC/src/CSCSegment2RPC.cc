@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.4 2012/01/10 13:59:23 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.5 2012/01/12 12:47:53 hyteng Exp $
 //
 //
 
@@ -98,7 +98,6 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         virtual void endRun(const edm::Run& Run, const edm::EventSetup& iSetup);
         virtual void endJob() ;
 
-        //std::map<std::string, MonitorElement*> bookDetUnitSeg(RPCDetId& detId,int nstrips, double stripw, double stripl);
         void sampleCSCSegments();
         void sampleRPCsimHits();
         bool filterCSCSegment(const CSCSegment& sampleCSCSegment);
@@ -118,10 +117,8 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         edm::InputTag RPCrecHitTag_;
         edm::InputTag simTrackTag_;
 
-        edm::ESHandle<RPCGeometry> pRPCGeom;
-        RPCGeometry* rpcGeometry;
-        edm::ESHandle<CSCGeometry> pCSCGeom;
-        CSCGeometry* cscGeometry;
+        edm::ESHandle<RPCGeometry> theRPCGeometry;
+        edm::ESHandle<CSCGeometry> theCSCGeometry;
 
         edm::Handle<CSCSegmentCollection> pCSCSegments;
         edm::Handle<CSCStripDigiCollection> pCSCStripDigiCollection;
@@ -131,16 +128,16 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         edm::Handle<RPCRecHitCollection> pRPCrecHits;
         edm::Handle<SimTrackContainer> psimTracks;
 
-        bool isCSCSegmentFilter;
+        bool isSegmentMatchFilter;
         unsigned int SampleType;
         double deltaRTH;
         double ConeAngleX;
         double ConeAngleY;
+        bool isEtaFilter;
         double MinSegmentEta;
         double MaxSegmentEta;
         int TrackType;
 
-        int dupli;
         double RangeStrips;
         double MaxD;
         double RollSize;
@@ -167,38 +164,7 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         bool ischecked;
         bool isEfficiencyfilled;
 
-        char meRPCId [128];
-        //bool EffSaveRootFile;
-        //std::string EffRootFileName;
-
-        std::map< CSCDetId, std::vector<RPCDetId> > RollswithCSCChamber;
-        //std::map< RPCDetId, std::map<std::string, MonitorElement*> >  meCollection;
-        /*
-        DQMStore* DBE;
-        MonitorElement* Statistics;
-        
-        // ClusterSize Histo
-        MonitorElement* hGlobalResClu1R3C;
-        MonitorElement* hGlobalResClu1R3B;
-        MonitorElement* hGlobalResClu1R3A;
-        MonitorElement* hGlobalResClu1R2C;
-        MonitorElement* hGlobalResClu1R2B; 
-        MonitorElement* hGlobalResClu1R2A;
-
-        MonitorElement* hGlobalResClu2R3C;
-        MonitorElement* hGlobalResClu2R3B;
-        MonitorElement* hGlobalResClu2R3A;
-        MonitorElement* hGlobalResClu2R2C;
-        MonitorElement* hGlobalResClu2R2B;
-        MonitorElement* hGlobalResClu2R2A;
-
-        MonitorElement* hGlobalResClu3R3C;
-        MonitorElement* hGlobalResClu3R3B;
-        MonitorElement* hGlobalResClu3R3A;
-        MonitorElement* hGlobalResClu3R2C;
-        MonitorElement* hGlobalResClu3R2B;
-        MonitorElement* hGlobalResClu3R2A;
-        */
+        std::map< CSCDetId, std::vector<RPCDetId> > CSC2RPCRolls;
         CSC2RPCBinder CSC2RPCMap;
 
         // Ntuple method
@@ -218,7 +184,8 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         double impactGlobalPosition_Y;
         double impactLocalPosition_X;
         double impactLocalPosition_Y;
-        bool SavetheRootFile;
+        double CSCGlobalPosition_X;
+        double CSCGlobalPosition_Y;
         string theRootFileName;
         TFile *theFile;
         TTree *ExTree;
@@ -246,64 +213,20 @@ CSCSegment2RPC::CSCSegment2RPC(const edm::ParameterSet& iConfig) {
     RPCsimHitTag_ = iConfig.getParameter<edm::InputTag>("RPCsimHitTag");
     simTrackTag_ = iConfig.getParameter<edm::InputTag>("simTrackTag");
 
-    isCSCSegmentFilter = iConfig.getParameter<bool>("isCSCSegmentFilter");
+    isSegmentMatchFilter = iConfig.getParameter<bool>("isSegmentMatchFilter");
     SampleType = iConfig.getParameter<unsigned int>("SampleType");
     TrackType = iConfig.getParameter<int>("TrackType");
     deltaRTH = iConfig.getParameter<double>("deltaRTH");
     ConeAngleX = iConfig.getParameter<double>("ConeAngleX");
     ConeAngleY = iConfig.getParameter<double>("ConeAngleY");
+    isEtaFilter = iConfig.getParameter<bool>("isEtaFilter");
     MinSegmentEta = iConfig.getParameter<double>("MinSegmentEta");
     MaxSegmentEta = iConfig.getParameter<double>("MaxSegmentEta");
     RangeStrips = iConfig.getParameter<double>("RangeStrips");
-    //dupli = iConfig.getParameter<int>("DuplicationCorrection");
     MaxD = iConfig.getParameter<double>("MaxD");
 
-    issampled = false;
-    isSamplefilled = false;
-    ischecked = false;
-    isEfficiencyfilled = false;
-
-    //EffSaveRootFile  = iConfig.getUntrackedParameter<bool>("EffSaveRootFile", false);
-    //EffRootFileName  = iConfig.getUntrackedParameter<std::string>("EffRootFileName", "RPCEfficiency.root"); 
-    
-    //SavetheRootFile = iConfig.getUntrackedParameter<bool>("EffSaveRootFile2", false);
     theRootFileName = iConfig.getUntrackedParameter<std::string>("EffRootFileName", "RPCEfficiencyTree.root");
 
-    /*
-    DBE = edm::Service<DQMStore>().operator->();
-    std::string Folder = "Muons/MuonSegEff/";
-    DBE->setCurrentFolder(Folder);
-    Statistics = DBE->book1D("Statistics","All Statistics",33,0.5,33.5);
-
-    if(debug) cout << "booking Global histograms" << std::endl;
-
-    Folder = "Muons/MuonSegEff/Residuals/EndCap";
-    DBE->setCurrentFolder(Folder);
-
-    // Hist
-    hGlobalResClu1R3C = DBE->book1D("GlobalResidualsClu1R3C", "RPC Residuals Ring 3 Roll C Cluster Size 1", 101, -10., 10.);
-    hGlobalResClu1R3B = DBE->book1D("GlobalResidualsClu1R3B", "RPC Residuals Ring 3 Roll B Cluster Size 1", 101, -10., 10.);
-    hGlobalResClu1R3A = DBE->book1D("GlobalResidualsClu1R3A", "RPC Residuals Ring 3 Roll A Cluster Size 1", 101, -10., 10.);
-    hGlobalResClu1R2C = DBE->book1D("GlobalResidualsClu1R2C", "RPC Residuals Ring 2 Roll C Cluster Size 1", 101, -10., 10.);
-    hGlobalResClu1R2B = DBE->book1D("GlobalResidualsClu1R2B", "RPC Residuals Ring 2 Roll B Cluster Size 1", 101, -10., 10.);
-    hGlobalResClu1R2A = DBE->book1D("GlobalResidualsClu1R2A", "RPC Residuals Ring 2 Roll A Cluster Size 1", 101, -10., 10.);
-
-    hGlobalResClu2R3C = DBE->book1D("GlobalResidualsClu2R3C", "RPC Residuals Ring 3 Roll C Cluster Size 2", 101, -10., 10.);
-    hGlobalResClu2R3B = DBE->book1D("GlobalResidualsClu2R3B", "RPC Residuals Ring 3 Roll B Cluster Size 2", 101, -10., 10.);
-    hGlobalResClu2R3A = DBE->book1D("GlobalResidualsClu2R3A", "RPC Residuals Ring 3 Roll A Cluster Size 2", 101, -10., 10.);
-    hGlobalResClu2R2C = DBE->book1D("GlobalResidualsClu2R2C", "RPC Residuals Ring 2 Roll C Cluster Size 2", 101, -10., 10.);
-    hGlobalResClu2R2B = DBE->book1D("GlobalResidualsClu2R2B", "RPC Residuals Ring 2 Roll B Cluster Size 2", 101, -10., 10.);
-    hGlobalResClu2R2A = DBE->book1D("GlobalResidualsClu2R2A", "RPC Residuals Ring 2 Roll A Cluster Size 2", 101, -10., 10.);
-
-    hGlobalResClu3R3C = DBE->book1D("GlobalResidualsClu3R3C", "RPC Residuals Ring 3 Roll C Cluster Size 3", 101, -10., 10.);
-    hGlobalResClu3R3B = DBE->book1D("GlobalResidualsClu3R3B", "RPC Residuals Ring 3 Roll B Cluster Size 3", 101, -10., 10.);
-    hGlobalResClu3R3A = DBE->book1D("GlobalResidualsClu3R3A", "RPC Residuals Ring 3 Roll A Cluster Size 3", 101, -10., 10.);
-    hGlobalResClu3R2C = DBE->book1D("GlobalResidualsClu3R2C", "RPC Residuals Ring 2 Roll C Cluster Size 3", 101, -10., 10.);
-    hGlobalResClu3R2B = DBE->book1D("GlobalResidualsClu3R2B", "RPC Residuals Ring 2 Roll B Cluster Size 3", 101, -10., 10.);
-    hGlobalResClu3R2A = DBE->book1D("GlobalResidualsClu3R2A", "RPC Residuals Ring 2 Roll A Cluster Size 3", 101, -10., 10.);
-    */
-
-    // Tree
     theFile = new TFile(theRootFileName.c_str(), "recreate");
     theFile->cd();
     ExTree= new TTree("ExTree", "ExTree");
@@ -325,6 +248,8 @@ CSCSegment2RPC::CSCSegment2RPC(const edm::ParameterSet& iConfig) {
     ExTree->Branch("impactGlobalPosition_Y", &impactGlobalPosition_Y, "impactGlobalPosition_Y/D");
     ExTree->Branch("impactLocalPosition_X", &impactLocalPosition_X, "impactLocalPosition_X/D");
     ExTree->Branch("impactLocalPosition_Y", &impactLocalPosition_Y, "impactLocalPosition_Y/D");
+    ExTree->Branch("CSCGlobalPosition_X", &CSCGlobalPosition_X, "CSCGlobalPosition_X/D");
+    ExTree->Branch("CSCGlobalPosition_Y", &CSCGlobalPosition_Y, "CSCGlobalPosition_Y/D");
 }
 
 
@@ -335,121 +260,17 @@ CSCSegment2RPC::~CSCSegment2RPC() {
 }
 
 
-//
-// member functions
-//
-/*
-std::map<std::string, MonitorElement*> CSCSegment2RPC::bookDetUnitSeg(RPCDetId& detId, int nstrips, double stripw, double stripl) {
-
-    std::map<std::string, MonitorElement*> meMap;
-
-    RPCBookFolderStructure*  FolderStr = new RPCBookFolderStructure(); //Anna
-    std::string Folder = "Muons/MuonSegEff/" +  FolderStr->folderStructure(detId);
-
-    DBE->setCurrentFolder(Folder);
-
-    RPCGeomServ RPCname(detId);
-    std::string nameRoll = RPCname.name();
-    char detUnitLabel[128];
-    char layerLabel[128];
-
-    sprintf(detUnitLabel ,"%s", nameRoll.c_str());
-    sprintf(layerLabel ,"%s", nameRoll.c_str());
-
-    char meId [128];
-    char meTitle [128];
-
-    int rawId = detId.rawId();
-    if(debug) cout << "Booking histogram for RPC roll " << rawId << ", name: " << detUnitLabel << ", nstrips: " << nstrips << ", stripw: " << stripw << ", stripl: " << stripl << endl;
-
-    // old: from 0.5 to nstrips+0.5 new: from 0 to nstrips
-    sprintf(meId, "ExpectedOccupancyFromCSC_%s", detUnitLabel);
-    sprintf(meTitle, "ExpectedOccupancyFromCSC_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, nstrips, 0, nstrips);
-
-    sprintf(meId, "RPCDataOccupancyFromCSC_%s", detUnitLabel);
-    sprintf(meTitle, "RPCDataOccupancyFromCSC_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, nstrips, 0, nstrips);
-
-    sprintf(meId, "RPCimpactDistanceZ_%s", detUnitLabel);
-    sprintf(meTitle, "RPCimpactDistanceZ_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 80, 0., 80.);
-
-    sprintf(meId, "RPCimpactAngle_%s", detUnitLabel);
-    sprintf(meTitle, "RPCimpactAngle_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 314, 0., PI/2.);
-
-    sprintf(meId,"RPCResidualsFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"RPCResidualsFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book1D(meId, meTitle, 101, -7.*stripw, 7*stripw);
-
-    sprintf(meId,"RPCStripYOccupancyFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"RPCStripYOccupancyFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book1D(meId, meTitle, 101, -0.5*stripl, 0.5*stripl);
-
-    // RPC Timming 
-    sprintf(meId, "RPCBX_%s", detUnitLabel);
-    sprintf(meTitle, "RPCBX_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 11, -5.5, 5.5);
-
-    // CSC Strip Timming 
-    sprintf(meId, "CSCPeakTimeAverage_%s", detUnitLabel);
-    sprintf(meTitle, "CSCPeakTimeAverage_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 110, -5.5, 5.5);
-
-    // CSC Wire Timming 
-    sprintf(meId, "averageCSCWireBX_%s", detUnitLabel);
-    sprintf(meTitle, "averageCSCWireBX_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 11, -5.5, 5.5);
-
-    // Delta Timing
-    sprintf(meId, "DeltaBXTime_%s", detUnitLabel);
-    sprintf(meTitle, "DeltaBXTime_for_%s", layerLabel);
-    if(debug) cout << "Booking for " << meId << endl;
-    meMap[meId] = DBE->book1D(meId, meTitle, 11, -5.5, 5.5);
-
-    // New 2D and more
-    sprintf(meId,"ExpectedOccupancy2DFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"ExpectedOccupancy2DFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book2D(meId, meTitle, nstrips, -0.5*nstrips*stripw, 0.5*nstrips*stripw, nstrips, -0.5*stripl, 0.5*stripl);
-
-    sprintf(meId,"RPCDataOccupancy2DFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"RPCDataOccupancy2DFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book2D(meId, meTitle, nstrips, -0.5*nstrips*stripw, 0.5*nstrips*stripw, nstrips, -0.5*stripl, 0.5*stripl);  
-
-    //ConeRadiusX
-    sprintf(meId,"RPCConeRadiusXFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"RPCConeRadiusXFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book1D(meId, meTitle, 101, -0.5*nstrips*stripw, 0.5*nstrips*stripw);
-
-    //ConeRadiusY
-    sprintf(meId,"RPCConeRadiusYFromCSC_%s", detUnitLabel);
-    sprintf(meTitle,"RPCConeRadiusYFromCSC_for_%s", layerLabel);
-    meMap[meId] = DBE->book1D(meId, meTitle, 101, -0.5*stripl, 0.5*stripl);
-
-    return meMap;
-}
-*/
 // ------------ method called to for each event  ------------
 void CSCSegment2RPC::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
     using namespace edm;
     using namespace std;
-    //char meRPCId [128];
 
-    // Get the RPC geometry
-    iSetup.get<MuonGeometryRecord>().get(pRPCGeom);
-    rpcGeometry = (RPCGeometry*)&*pRPCGeom;
-    // Get the CSC geomtry
-    iSetup.get<MuonGeometryRecord>().get(pCSCGeom);
-    cscGeometry = (CSCGeometry*)&*pCSCGeom;
+    // Get the geometry
+    iSetup.get<MuonGeometryRecord>().get(theRPCGeometry);
+    //theRPCGeometry = (RPCGeometry*)&*pRPCGeom;
+    iSetup.get<MuonGeometryRecord>().get(theCSCGeometry);
+    //theCSCGeometry = (CSCGeometry*)&*pCSCGeom;
 
     // Get CSC segment
     iEvent.getByLabel(CSCSegmentsTag_, pCSCSegments);
@@ -467,11 +288,6 @@ void CSCSegment2RPC::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
         // Get simTrack
         iEvent.getByLabel(simTrackTag_, psimTracks);
     }
-
-    issampled = false;
-    isSamplefilled = false;
-    ischecked = false;
-    isEfficiencyfilled = false;
 
     runNumber = iEvent.run();
     impactEventId = iEvent.id().event();
@@ -508,12 +324,9 @@ void CSCSegment2RPC::sampleCSCSegments() {
             continue;
         if(Ring == 1 || Ring == 4)
             continue;
-        /*
-        if(isCSCSegmentFilter == true && !filterCSCSegment(*CSCSegIter))
+        
+        if(isEtaFilter == true && !filterSegmentEta(*CSCSegIter))
             continue;
-        */
-        //if(!filterSegmentEta(*CSCSegIter))
-            //continue;
         // One chamber has only 1 segment to avoid electron shower segments, and require at least 2 segments for this event
         if(debug) cout << "CSCSegmentsCounter: " << CSCSegmentsCounter[CSCId] << endl;
 
@@ -523,18 +336,18 @@ void CSCSegment2RPC::sampleCSCSegments() {
             LocalVector SegmentLocalDirection=CSCSegIter->localDirection();
             if(debug) cout << "CSC segment local position: " << SegmentLocalPosition << endl;
             if(debug) cout << "CSC segment local direction: " << SegmentLocalDirection << endl;
-            const GeomDet* CSCDet = cscGeometry->idToDet(CSCId);
+            const GeomDet* CSCDet = theCSCGeometry->idToDet(CSCId);
             if(dynamic_cast<const CSCChamber*>(CSCDet) != 0) {
                 const CSCChamber* CSCCh = dynamic_cast<const CSCChamber*>(CSCDet);
                 GlobalPoint SegmentGlobalPosition = CSCCh->toGlobal(SegmentLocalPosition);
                 GlobalVector SegmentGlobalDirection = CSCCh->toGlobal(SegmentLocalDirection);
                 if(debug) cout << "CSC segment global position: " << SegmentGlobalPosition << endl;
                 if(debug) cout << "CSC segment global direction: " << SegmentGlobalDirection << endl;
+                CSCGlobalPosition_X = SegmentGlobalPosition.x();
+                CSCGlobalPosition_Y = SegmentGlobalPosition.y();
                 // Find correspond RPC rolls
                 if(CSC2RPCMap.nearbyRPCRolls(CSCId).size() != 0) {
                     std::vector<RPCDetId> RPCRolls = CSC2RPCMap.nearbyRPCRolls(CSCId);
-                    ischecked = false;
-                    issampled = false;
                     for(std::vector<RPCDetId>::const_iterator RPCRollIter = RPCRolls.begin(); RPCRollIter != RPCRolls.end(); RPCRollIter++) {
                         if(ischecked == true)
                             continue;
@@ -552,12 +365,12 @@ void CSCSegment2RPC::sampleCSCSegments() {
                         }
                         //isSpecialRoll = false;
                         bool passCSCFilter = filterCSCSegment(*CSCSegIter);
-                        if(isCSCSegmentFilter == true && !isSpecialRoll && !passCSCFilter) {
-                            if(debug) cout << "skip the filter for special roll: " << isCSCSegmentFilter << ", " << isSpecialRoll << ", " << passCSCFilter << endl;
+                        if(isSegmentMatchFilter == true && !isSpecialRoll && !passCSCFilter) {
+                            if(debug) cout << "skip the filter for special roll: " << isSegmentMatchFilter << ", " << isSpecialRoll << ", " << passCSCFilter << endl;
                             continue;
                         }
 
-                        const GeomDetUnit* RPCDet = rpcGeometry->idToDetUnit(*RPCRollIter);
+                        const GeomDetUnit* RPCDet = theRPCGeometry->idToDetUnit(*RPCRollIter);
                         if(dynamic_cast<const RPCRoll*>(RPCDet) != 0) {
                             const RPCRoll* sampleRPCRoll = dynamic_cast<const RPCRoll*>(RPCDet);
                             const BoundPlane& sampleRPCRollSurface = sampleRPCRoll->surface();
@@ -601,14 +414,7 @@ void CSCSegment2RPC::sampleCSCSegments() {
                             int NStrips = sampleRPCRollTop.nstrips();
                             RollSize = (double)NStrips * StripWidth;
 
-                            if(RPCStation == 1 && RPCRing == 3 && RPCRollNumber == 1)
-                                if(debug) cout << "RE13 RPCRoll: " << RPCStation << ", " << RPCRing << ", " << RPCRollNumber << ", " << fabs(impactRPCPosition.x()) << ", " << RollSize << ", " << fabs(impactRPCPosition.y()) << ", " << StripLength*0.5 << endl;
-
-
                             if(fabs(impactRPCPosition.z()) <= 1 && fabs(impactRPCPosition.x()) <= (RollSize*0.5+ConeRadiusX) && fabs(impactRPCPosition.y()) <= (StripLength*0.5+ConeRadiusY)) {
-
-                                if(RPCStation == 1 && RPCRing == 3 && RPCRollNumber == 1)
-                                    if(debug) cout << "come into RE13 RPCRoll: " << RPCStation << ", " << RPCRing << ", " << RPCRollNumber << endl;
 
                                 if(debug) cout << "CSC chamber: " << CSCId.rawId() << ", Endcap: " << Endcap << ", Station: " << Station << ", Ring: " << Ring << ", Chamber: " << Chamber << ", layer: " << Layer << ", RPCRing: " << RPCRing << ", " << "RPCRollNumber: " << RPCRollNumber << ", roll size: " << RollSize << ", strip length: " << StripLength << ", strip width: " << StripWidth << ", ConeRadiusX: " << ConeRadiusX <<  ", ConeRadiusY: " << ConeRadiusY << endl;
                                 
@@ -633,10 +439,10 @@ void CSCSegment2RPC::sampleCSCSegments() {
                                 if(debug) cout << "impactRPCId is " << impactRPCId << ", impactCSCPeakTime2nd is " << impactCSCPeakTime2nd << ", impactAngle is " << impactAngle << ", impactStrip is " << impactStrip << ", impactLocalPosition_X is " << impactLocalPosition_X << ", impactLocalPosition_Y is " << impactLocalPosition_Y << ", impactGlobalPosition_X is " << impactGlobalPosition_X << ", impactGlobalPosition_Y is " << impactGlobalPosition_Y << endl;
                                 // check efficiency
                                 issampled = true;
-                                EfficiencybyRPCrecHit();
-                                if(anycoincidence == true) {
+                                if(ischecked == false)
+                                    EfficiencybyRPCrecHit();
+                                if(anycoincidence == true && ischecked == false) {
                                     ischecked = true;
-                                    //fillSample();
                                     fillEfficiency();
                                 }
                                 // avoid efficiency is calculated for 2 times
@@ -737,7 +543,7 @@ void CSCSegment2RPC::sampleRPCsimHits() {
         // Check the DetId is a RPCDetId
         unsigned int sampleDetUnitId = simHitIter->detUnitId();
         DetId sampleDetectorId = DetId(sampleDetUnitId);
-        GeomDetEnumerators::SubDetector subDet = rpcGeometry->idToDetUnit(sampleDetectorId)->subDetector();
+        GeomDetEnumerators::SubDetector subDet = theRPCGeometry->idToDetUnit(sampleDetectorId)->subDetector();
         if(subDet != GeomDetEnumerators::RPCEndcap)        
             continue;
 
@@ -751,7 +557,7 @@ void CSCSegment2RPC::sampleRPCsimHits() {
         ischecked = false;
         isEfficiencyfilled = false;
 
-        const GeomDetUnit* RPCDet = rpcGeometry->idToDetUnit(sampleRPCRollId);
+        const GeomDetUnit* RPCDet = theRPCGeometry->idToDetUnit(sampleRPCRollId);
         if(dynamic_cast<const RPCRoll*>(RPCDet) != 0) {
             const RPCRoll* sampleRPCRoll = dynamic_cast<const RPCRoll*>(RPCDet);
             //const BoundPlane& sampleRPCRollSurface = sampleRPCRoll->surface();
@@ -799,7 +605,7 @@ bool CSCSegment2RPC::filterCSCSegment(const CSCSegment& sampleCSCSegment) {
 
     bool isTrackSegment = false;
     CSCDetId sampleCSCId = sampleCSCSegment.cscDetId();
-    const CSCChamber* sampleCSCChamber = cscGeometry->chamber(sampleCSCId);
+    const CSCChamber* sampleCSCChamber = theCSCGeometry->chamber(sampleCSCId);
     LocalVector localsampleVector = sampleCSCSegment.localDirection();
     LocalPoint localsamplePosition = sampleCSCSegment.localPosition();
     GlobalVector globalsampleVector = sampleCSCChamber->toGlobal(localsampleVector);
@@ -814,7 +620,7 @@ bool CSCSegment2RPC::filterCSCSegment(const CSCSegment& sampleCSCSegment) {
         if((abs(sampleCSCStation-iterCSCStation) != 1) && (sampleCSCzEndcap != iterCSCzEndcap))
             continue;
 
-        const CSCChamber* iterCSCChamber = cscGeometry->chamber(iterCSCId);
+        const CSCChamber* iterCSCChamber = theCSCGeometry->chamber(iterCSCId);
         LocalVector localIterVector = CSCSegIter->localDirection();
         LocalPoint localIterPosition = CSCSegIter->localPosition();
         GlobalVector globalIterVector = iterCSCChamber->toGlobal(localIterVector);
@@ -847,7 +653,7 @@ bool CSCSegment2RPC::filterSegmentEta(const CSCSegment& sampleCSCSegment) {
 
     bool isinsideEtaRange = false;
     CSCDetId sampleCSCId = sampleCSCSegment.cscDetId();
-    const CSCChamber* sampleCSCChamber = cscGeometry->chamber(sampleCSCId);
+    const CSCChamber* sampleCSCChamber = theCSCGeometry->chamber(sampleCSCId);
     LocalVector localsampleVector = sampleCSCSegment.localDirection();
     GlobalVector globalsampleVector = sampleCSCChamber->toGlobal(localsampleVector);
     double sampleSegmentEta = globalsampleVector.eta();
@@ -871,92 +677,6 @@ void CSCSegment2RPC::fillSample() {
         return;
     }
 
-    int  sampleEndcap = impactRPCRollId.region();
-    int  sampleStation = impactRPCRollId.station();
-    int  sampleRing = impactRPCRollId.ring();
-    int  sampleRoll = impactRPCRollId.roll();
-    if(debug) cout << "Find a impact point from this CSC segment onto RPC roll: " << impactRPCRollId.rawId() << ", Endcap: " << sampleEndcap << ", Station: " << sampleStation << ", Ring: " << sampleRing << ", Roll: " << sampleRoll << endl;
-    if(debug) cout << "The impact strip is " << impactStrip << ", impact point on RPC frame: " << impactPoint << endl;
-
-    /*
-    if(meCollection.find(impactRPCRollId) != meCollection.end()) {
-        std::map<std::string, MonitorElement*> meMap = meCollection[impactRPCRollId];
-        RPCGeomServ RPCname(impactRPCRollId);
-        std::string nameRoll = RPCname.name();
-        // Fill CSC Strip peak Time
-        sprintf(meRPCId,"CSCPeakTimeAverage_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(CSCPeakTimeAverage);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill CSC Wire peak Time
-        sprintf(meRPCId,"averageCSCWireBX_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(CSCWireTimeBin);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill extrapolation histogram
-        sprintf(meRPCId, "RPCimpactAngle_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(((impactDirection.theta() > PI/2) ? (PI- impactDirection.theta()) : impactDirection.theta()));
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill extrapolation distance
-        sprintf(meRPCId, "RPCimpactDistanceZ_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(impactDistanceZ);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // N.x strip position correspond to N+1 strip in RPC local frame
-        sprintf(meRPCId, "ExpectedOccupancyFromCSC_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(impactStrip);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill extrapolation histogram
-        sprintf(meRPCId, "RPCStripYOccupancyFromCSC_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(impactPoint.y());
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill extrapolation 2D histogram
-        sprintf(meRPCId, "ExpectedOccupancy2DFromCSC_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(impactPoint.x(), impactPoint.y());
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        // Fill RPCConeRadiusFromCSC
-        sprintf(meRPCId, "RPCConeRadiusXFromCSC_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(ConeRadiusX);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-
-        sprintf(meRPCId, "RPCConeRadiusYFromCSC_%s", nameRoll.c_str());
-        if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-        if(meMap.find(meRPCId) != meMap.end())
-            meMap[meRPCId]->Fill(ConeRadiusY);
-        else
-            if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-    }
-    else
-        if(debug) cout << "Could not find a RPC roll index from meCollection" << endl;
-    */
     isSamplefilled = true;
 }
 
@@ -1029,108 +749,6 @@ void CSCSegment2RPC::fillEfficiency() {
         if(debug) cout << "Not yet check the RPC roll or efficiency already filled." << endl;
         return;
     }
-    /*
-    if(anycoincidence == true && isvalideRPCBX == true) {
-        if(impactRPCRollId.ring()==2 && impactRPCRollId.roll()==1) {
-            if(debug) cout << "Ring 2 Roll A cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli)
-                hGlobalResClu1R2A->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R2A->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R2A->Fill(impactResidual);
-        }
-        if(impactRPCRollId.ring()==2 && impactRPCRollId.roll()==2) {
-            if(debug) cout << "Ring 2 Roll B cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli) 
-                hGlobalResClu1R2B->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R2B->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R2B->Fill(impactResidual);
-        }
-        if(impactRPCRollId.ring()==2 && impactRPCRollId.roll()==3) {
-            if(debug) cout << "Ring 2 Roll C cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli) 
-                hGlobalResClu1R2C->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R2C->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R2C->Fill(impactResidual);
-        }
-        if(impactRPCRollId.ring()==3 && impactRPCRollId.roll()==1) {
-            if(debug) cout << "Ring 3 Roll A cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli) 
-                hGlobalResClu1R3A->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R3A->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R3A->Fill(impactResidual);
-        }
-        if(impactRPCRollId.ring()==3 && impactRPCRollId.roll()==2) {
-            if(debug) cout << "Ring 3 Roll B cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli) 
-                hGlobalResClu1R3B->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R3B->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R3B->Fill(impactResidual);
-        }
-        if(impactRPCRollId.ring()==3 && impactRPCRollId.roll()==3) {
-            if(debug) cout << "Ring 3 Roll C cluster size: " << impactClusterSize << endl;
-            if(impactClusterSize == 1*dupli) 
-                hGlobalResClu1R3C->Fill(impactResidual); 
-            if(impactClusterSize == 2*dupli) 
-                hGlobalResClu2R3C->Fill(impactResidual); 
-            if(impactClusterSize == 3*dupli) 
-                hGlobalResClu3R3C->Fill(impactResidual);
-        }
-    
-        if(meCollection.find(impactRPCRollId) != meCollection.end()) {
-            std::map<std::string, MonitorElement*> meMap = meCollection[impactRPCRollId];
-            RPCGeomServ RPCname(impactRPCRollId);
-            std::string nameRoll = RPCname.name();
-            // Fill BX 
-            sprintf(meRPCId,"RPCBX_%s", nameRoll.c_str());
-            if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-            if(meMap.find(meRPCId) != meMap.end())
-                meMap[meRPCId]->Fill(RPCBX);
-            else
-                if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-            // Fill Delta Timing
-            sprintf(meRPCId,"DeltaBXTime_%s", nameRoll.c_str());
-            if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-            if(meMap.find(meRPCId) != meMap.end())
-                meMap[meRPCId]->Fill(deltaBXTime);
-            else
-                if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-            // Fill Residuals histogram
-            sprintf(meRPCId, "RPCResidualsFromCSC_%s", nameRoll.c_str());
-            if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-            if(meMap.find(meRPCId) != meMap.end())
-                meMap[meRPCId]->Fill(impactResidual);
-            else
-                if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-            // Fill Occupancy histogram
-            // N.x strip position correspond to N+1 strip in RPC local frame
-            sprintf(meRPCId, "RPCDataOccupancyFromCSC_%s", nameRoll.c_str());
-            if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-            if(meMap.find(meRPCId) != meMap.end())
-                meMap[meRPCId]->Fill(impactStrip);
-            else
-                if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-            // Fill Occupancy 2D histogram
-            sprintf(meRPCId, "RPCDataOccupancy2DFromCSC_%s", nameRoll.c_str());
-            if(debug) cout <<"Filling to histogram " << meRPCId << endl;
-            if(meMap.find(meRPCId) != meMap.end())
-                meMap[meRPCId]->Fill(impactPoint.x(), impactPoint.y());
-            else
-                if(debug) cout << "Could not find a histogram " << meRPCId << endl;
-        }
-        else 
-            if(debug) cout << "Could not find a RPC roll index from meCollection" << endl;
-    }
-    */
     // Fill tree whatever efficiency is 0 or 1;
     ExTree->Fill();
 
@@ -1174,10 +792,10 @@ void CSCSegment2RPC::beginRun(const edm::Run& Run, const edm::EventSetup& iSetup
         int Layer = 0;
         CSCDetId CSCIndex(Region, Station, Ring, Chamber, Layer);
         std::vector<RPCDetId> RPCRolls_temp;
-        if(RollswithCSCChamber.find(CSCIndex) != RollswithCSCChamber.end())
-            RPCRolls_temp = RollswithCSCChamber[CSCIndex];
+        if(CSC2RPCRolls.find(CSCIndex) != CSC2RPCRolls.end())
+            RPCRolls_temp = CSC2RPCRolls[CSCIndex];
         RPCRolls_temp.push_back(rpcRoll);
-        RollswithCSCChamber[CSCIndex] = RPCRolls_temp;
+        CSC2RPCRolls[CSCIndex] = RPCRolls_temp;
         //meCollection[rpcRoll] = bookDetUnitSeg(rpcRoll, (*RPCRollIter)->nstrips(), (*RPCRollIter)->pitch(), (*RPCRollIter)->specificTopology().stripLength());
     }
 }
