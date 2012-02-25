@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.6 2012/02/15 08:05:16 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.7 2012/02/21 00:29:34 hyteng Exp $
 //
 //
 
@@ -617,7 +617,7 @@ bool CSCSegment2RPC::filterCSCSegment(const CSCSegment& sampleCSCSegment) {
         CSCDetId iterCSCId = CSCSegIter->cscDetId();
         int iterCSCStation = iterCSCId.station();
         int iterCSCzEndcap = iterCSCId.zendcap();
-        if((abs(sampleCSCStation-iterCSCStation) != 1) || (sampleCSCzEndcap != iterCSCzEndcap))
+        if((abs(sampleCSCStation-iterCSCStation) == 0) || (sampleCSCzEndcap != iterCSCzEndcap))
             continue;
 
         if(debug) cout << "sampleCSCSegment:" << sampleCSCStation << ", " << sampleCSCzEndcap << ". CSCSegIter:" << iterCSCStation << ", " << iterCSCzEndcap << endl;
@@ -648,7 +648,7 @@ double CSCSegment2RPC::deltaRforSegment(const GlobalPoint& globalPosition1, cons
     GlobalVector VectorPoint2Point = (GlobalVector)(globalPosition2 - globalPosition1);
     double deltaR1 = sqrt((globalVector2.phi() - globalVector1.phi()).value() * (globalVector2.phi() - globalVector1.phi()).value() + (globalVector2.theta() - globalVector1.theta()) * (globalVector2.theta() - globalVector1.theta()));
     double deltaR2 = sqrt((VectorPoint2Point.phi() - globalVector1.phi()).value() * (VectorPoint2Point.phi() - globalVector1.phi()).value() + (VectorPoint2Point.theta() - globalVector1.theta()) * (VectorPoint2Point.theta() - globalVector1.theta()));
-    if(debug) cout << "deltaR1: " << deltaR1 << ", deltaR2: " << deltaR1 << ". globalVector1: " << globalVector1.phi().value() << ", " << globalVector1.theta() << ". globalVector2: " << globalVector2.phi().value() << ", " << globalVector2.theta() << endl;
+    if(debug) cout << "deltaR1: " << deltaR1 << ", deltaR2: " << deltaR2 << ". globalVector1: " << globalVector1.phi().value() << ", " << globalVector1.theta() << ". globalVector2: " << globalVector2.phi().value() << ", " << globalVector2.theta() << endl;
     return (deltaR1 > deltaR2) ? deltaR1 : deltaR2;
 }
 
