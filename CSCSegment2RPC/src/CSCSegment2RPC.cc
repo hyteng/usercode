@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.7 2012/02/21 00:29:34 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.8 2012/02/25 05:22:10 hyteng Exp $
 //
 //
 
@@ -363,7 +363,7 @@ void CSCSegment2RPC::sampleCSCSegments() {
                             isSpecialRoll = true;
                             if(debug) cout << "SpecialRoll: " << RPCStation << ", " << RPCRing << ", " << RPCRollNumber << endl;
                         }
-                        isSpecialRoll = false;
+                        //isSpecialRoll = false;
                         bool passCSCFilter = filterCSCSegment(*CSCSegIter);
                         if(isSegmentMatchFilter == true && !isSpecialRoll && !passCSCFilter) {
                             if(debug) cout << "skip the filter for special roll: " << isSegmentMatchFilter << ", " << isSpecialRoll << ", " << passCSCFilter << endl;
@@ -401,8 +401,8 @@ void CSCSegment2RPC::sampleCSCSegments() {
                             ConeRadiusX = S * ConeAngleX;
                             ConeRadiusY = S * ConeAngleY;
                             // For RE1 the special layerout doesn't suit the cone algorithm
-                            if(Station == 1)
-                                ConeRadiusX = 0;
+                            //if(Station == 1)
+                                //ConeRadiusX = 0;
 
                             if(fabs(S) > MaxD) {
                                 if(debug) cout << "Extropolate distance is too long!" << endl;
