@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.8 2012/02/25 05:22:10 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.9 2012/03/02 13:21:26 hyteng Exp $
 //
 //
 
@@ -186,6 +186,10 @@ class CSCSegment2RPC : public edm::EDAnalyzer {
         double impactLocalPosition_Y;
         double CSCGlobalPosition_X;
         double CSCGlobalPosition_Y;
+        double CSCGlobalPosition_Z;
+        double RPCGlobalPosition_X;
+        double RPCGlobalPosition_Y;
+        double RPCGlobalPosition_Z;
         string theRootFileName;
         TFile *theFile;
         TTree *ExTree;
@@ -250,6 +254,10 @@ CSCSegment2RPC::CSCSegment2RPC(const edm::ParameterSet& iConfig) {
     ExTree->Branch("impactLocalPosition_Y", &impactLocalPosition_Y, "impactLocalPosition_Y/D");
     ExTree->Branch("CSCGlobalPosition_X", &CSCGlobalPosition_X, "CSCGlobalPosition_X/D");
     ExTree->Branch("CSCGlobalPosition_Y", &CSCGlobalPosition_Y, "CSCGlobalPosition_Y/D");
+    ExTree->Branch("CSCGlobalPosition_Z", &CSCGlobalPosition_Z, "CSCGlobalPosition_Z/D");
+    ExTree->Branch("RPCGlobalPosition_X", &RPCGlobalPosition_X, "RPCGlobalPosition_X/D");
+    ExTree->Branch("RPCGlobalPosition_Y", &RPCGlobalPosition_Y, "RPCGlobalPosition_Y/D");
+    ExTree->Branch("RPCGlobalPosition_Z", &RPCGlobalPosition_Z, "RPCGlobalPosition_Z/D");
 }
 
 
@@ -345,6 +353,7 @@ void CSCSegment2RPC::sampleCSCSegments() {
                 if(debug) cout << "CSC segment global direction: " << SegmentGlobalDirection << endl;
                 CSCGlobalPosition_X = SegmentGlobalPosition.x();
                 CSCGlobalPosition_Y = SegmentGlobalPosition.y();
+                CSCGlobalPosition_Z = SegmentGlobalPosition.z();
                 // Find correspond RPC rolls
                 if(CSC2RPCMap.nearbyRPCRolls(CSCId).size() != 0) {
                     std::vector<RPCDetId> RPCRolls = CSC2RPCMap.nearbyRPCRolls(CSCId);
@@ -435,7 +444,11 @@ void CSCSegment2RPC::sampleCSCSegments() {
                                 GlobalPoint impactPoint_Global = sampleRPCRoll->toGlobal(impactRPCPosition);
                                 impactGlobalPosition_X = impactPoint_Global.x();
                                 impactGlobalPosition_Y = impactPoint_Global.y();
-                                
+
+                                RPCGlobalPosition_X = impactPoint_Global.x();
+                                RPCGlobalPosition_Y = impactPoint_Global.y();
+                                RPCGlobalPosition_Z = impactPoint_Global.z();
+
                                 if(debug) cout << "impactRPCId is " << impactRPCId << ", impactCSCPeakTime2nd is " << impactCSCPeakTime2nd << ", impactAngle is " << impactAngle << ", impactStrip is " << impactStrip << ", impactLocalPosition_X is " << impactLocalPosition_X << ", impactLocalPosition_Y is " << impactLocalPosition_Y << ", impactGlobalPosition_X is " << impactGlobalPosition_X << ", impactGlobalPosition_Y is " << impactGlobalPosition_Y << endl;
                                 // check efficiency
                                 issampled = true;
