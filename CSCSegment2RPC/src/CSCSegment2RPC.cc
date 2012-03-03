@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.9 2012/03/02 13:21:26 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.10 2012/03/02 14:53:57 hyteng Exp $
 //
 //
 
@@ -410,8 +410,8 @@ void CSCSegment2RPC::sampleCSCSegments() {
                             ConeRadiusX = S * ConeAngleX;
                             ConeRadiusY = S * ConeAngleY;
                             // For RE1 the special layerout doesn't suit the cone algorithm
-                            //if(Station == 1)
-                                //ConeRadiusX = 0;
+                            if(Station == 1)
+                                ConeRadiusX = 0;
 
                             if(fabs(S) > MaxD) {
                                 if(debug) cout << "Extropolate distance is too long!" << endl;
