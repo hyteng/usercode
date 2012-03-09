@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Feb 11 10:40:41 CET 2009
-// $Id: CSCSegment2RPC.cc,v 1.10 2012/03/02 14:53:57 hyteng Exp $
+// $Id: CSCSegment2RPC.cc,v 1.11 2012/03/03 06:42:23 hyteng Exp $
 //
 //
 
@@ -438,6 +438,7 @@ void CSCSegment2RPC::sampleCSCSegments() {
                                 impactCSCPeakTime2nd = CSCPeakTime2nd;
                                 impactCSCPeakTimeAverage = CSCPeakTimeAverage;
                                 impactAngle = ((SegmentRPCDirection.theta() > PI/2) ? (PI- SegmentRPCDirection.theta()) : SegmentRPCDirection.theta());
+                                //impactAngle = ((SegmentGlobalDirection.theta() > PI/2) ? (PI- SegmentGlobalDirection.theta()) : SegmentGlobalDirection.theta());
                                 impactStrip = sampleRPCRollTop.strip(impactRPCPosition); // If outside the strip topology, the StripNumber will be set to 0/N_strip
                                 impactLocalPosition_X = impactRPCPosition.x();
                                 impactLocalPosition_Y = impactRPCPosition.y();
@@ -578,6 +579,7 @@ void CSCSegment2RPC::sampleRPCsimHits() {
             Local3DPoint sampleLocalPosition = simHitIter->localPosition();
             LocalPoint impactRPCPosition = sampleLocalPosition;
             LocalVector SegmentRPCDirection = simHitIter->momentumAtEntry(); 
+            GlobalVector SegmentGlobalDirection = sampleRPCRoll->toGlobal(SegmentRPCDirection);
             StripLength = sampleRPCRollTop.stripLength();
             StripWidth = sampleRPCRollTop.localPitch(impactRPCPosition);
             int NStrips = sampleRPCRollTop.nstrips();
@@ -594,6 +596,7 @@ void CSCSegment2RPC::sampleRPCsimHits() {
                 impactCSCPeakTime2nd = 0.;
                 impactCSCPeakTimeAverage = 0.;
                 impactAngle = ((SegmentRPCDirection.theta() > PI/2) ? (PI- SegmentRPCDirection.theta()) : SegmentRPCDirection.theta());
+                //impactAngle = ((SegmentGlobalDirection.theta() > PI/2) ? (PI- SegmentGlobalDirection.theta()) : SegmentGlobalDirection.theta());
                 impactStrip = sampleRPCRollTop.strip(impactRPCPosition);
                 impactLocalPosition_X = impactRPCPosition.x();
                 impactLocalPosition_Y = impactRPCPosition.y();
