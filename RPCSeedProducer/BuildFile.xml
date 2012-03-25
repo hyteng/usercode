@@ -1,0 +1,28 @@
+<use   name="FWCore/Framework"/>
+<use   name="FWCore/PluginManager"/>
+<use   name="FWCore/ParameterSet"/>
+<use   name="DataFormats/TrajectorySeed"/>
+<use   name="RecoMuon/TransientTrackingRecHit"/>
+<use   name="Geometry/RPCGeometry"/>
+<use   name="Geometry/CommonDetUnit"/>
+<use   name="TrackingTools/DetLayers"/>
+<use   name="RecoMuon/MeasurementDet"/>
+<use   name="RecoMuon/Records"/>
+<use   name="Geometry/Records"/>
+<use   name="DataFormats/Common"/>
+<use   name="SimDataFormats/TrackingHit"/>
+<use   name="DataFormats/RPCRecHit"/>
+<use   name="TrackingTools/TrajectoryState"/>
+<use   name="MagneticField/Engine"/>
+<use   name="MagneticField/Records"/>
+<use   name="root"/>
+<use   name="RecoMuon/TrackingTools"/>
+<use   name="DataFormats/TrajectoryState"/>
+<use   name="DataFormats/MuonDetId"/>
+<use   name="FWCore/MessageLogger"/>
+<use   name="SimDataFormats/RPCDigiSimLink"/>
+<flags   EDM_PLUGIN="1"/>
+<export>
+  <lib   name="1"/>
+  <flags   CXXFLAGS="-O0 -g3 -fno-inline"/>
+</export>

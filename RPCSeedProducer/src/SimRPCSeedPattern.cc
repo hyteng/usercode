@@ -63,8 +63,14 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     MagnecticFieldThreshold = iConfig.getParameter<double>("MagnecticFieldThreshold");
     sampleCount = iConfig.getParameter<unsigned int>("sampleCount");
     AlgorithmType = iConfig.getParameter<unsigned int>("AlgorithmType");
+    isVertexConstraint = iConfig.getParameter<bool>("isVertexConstraint");
+    isContinuousFilter = iConfig.getParameter<bool>("isContinuousFilter");
+    Cut1234 = iConfig.getParameter< vector<double> >("Cut1234");
+    CutMax = iConfig.getParameter< vector<double> >("CutMax");
     BendingPhiLowerTH = iConfig.getParameter< vector<double> >("BendingPhiLowerTH");
     BendingPhiUpperTH = iConfig.getParameter< vector<double> >("BendingPhiUpperTH");
+    BendingPhiFitValueUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitValueUpperLimit");
+    BendingPhiFitSigmaUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitSigmaUpperLimit");
     MeanPt_Parameter0 = iConfig.getParameter< vector<double> >("MeanPt_Parameter0");
     MeanPt_Parameter1 = iConfig.getParameter< vector<double> >("MeanPt_Parameter1");
     MeanPt_Parameter2 = iConfig.getParameter< vector<double> >("MeanPt_Parameter2");
@@ -72,8 +78,13 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     SigmaPt_Parameter1 = iConfig.getParameter< vector<double> >("SigmaPt_Parameter1");
     SigmaPt_Parameter2 = iConfig.getParameter< vector<double> >("SigmaPt_Parameter2");
     isConfigured = true;
+
+    if(isVertexConstraint == true && isContinuousFilter == false)
+        applyFilter = false;
+    else
+        applyFilter = true;
     
-    if(BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
+    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
         isConfigured = false;
 }
 
@@ -83,16 +94,19 @@ void SimRPCSeedPattern::setRecHits(const ConstMuonRecHitContainer& RecHits) {
         const GeomDetUnit* theDetUnit = (*Iter)->detUnit();
         GeomDetEnumerators::SubDetector subDet = theDetUnit->subDetector();
         int Layer = -1;
+        int SeedLayer = -1;
         if(subDet == GeomDetEnumerators::RPCBarrel) {
             int RPCStation = RPCDetId(theDetId).station(); // For Barrel 1-4
             int RPCLayer = RPCDetId(theDetId).layer(); // Only for RB1/2 the layer is 1/2 for in/out
             Layer = (RPCStation > 2) ? (RPCStation + 1) : (RPCStation * 2 + RPCLayer - 3);
+            SeedLayer = Layer;
         }
         if(subDet == GeomDetEnumerators::RPCEndcap) {
             int RPCRegion = RPCDetId(theDetId).region();
             int RPCStation = RPCDetId(theDetId).station();
             int LayerShift = (RPCRegion == -1) ? NegativeEndcapLayerShift : PositiveEndcapLayerShift;
             Layer = RPCStation + LayerShift;  // For Endcap 1-3/4/5(while RE4 complete/double layer in RE2)
+            SeedLayer = RPCStation - 1;
         }
 
         if(debug) cout << "RecHitLayer: " << Layer << endl;    
@@ -102,6 +116,7 @@ void SimRPCSeedPattern::setRecHits(const ConstMuonRecHitContainer& RecHits) {
 
         theRecHits.push_back(*Iter);
         theRecHitLayers.push_back(Layer);
+        theRecHitPosition[SeedLayer] = (*Iter)->globalPosition();
     }
     isRecHitset = true;
 }
@@ -124,24 +139,19 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::seed(const edm::Eve
 
     // Which kind of magnetic field should get?
     eSetup.get<IdealMagneticFieldRecord>().get(theMagneticField);
-
     measureRecHitandMagneticField();
 
+    isPatternChecked = false;
+    isGoodPattern = -1;
+
     Algorithm = checkAlgorithm();
-    if(Algorithm == 1) {
-        getPatternfromSimData();
-        checkPatternfromSimData();
-    }
-    // For barrel singal segment pattern
-    if(Algorithm == 2) { 
-
-    }
-    // For endcap singal segment pattern
-    if(Algorithm == 3) {
-
-    }
-
-    isRecHitset = false;
+    createPattern();
+    if(Algorithm >= 1 && Algorithm <= 4)
+        checkDoubleSegmentPattern();
+    if(Algorithm >= 5 && Algorithm <= 12)
+        checkSingleSegmentPattern();
+    
+    computePatternfromSimData();        
 
     return createSeed(isGoodSeed);
 }
@@ -211,7 +221,6 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
     // Get distance and magnetice field sampling information, recHit's position is not the border of Chamber and Iron
     sampleMagneticField.clear();
     DistanceXY = 0;
-    DistanceZ = 0;
     IntervalMagneticFlux.clear();
     for(ConstMuonRecHitContainer::const_iterator RecHitIter = theRecHits.begin(); RecHitIter != (theRecHits.end()-1); RecHitIter++) {
         GlobalPoint FirstPosition = (*RecHitIter)->globalPosition();
@@ -237,10 +246,30 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
         delete [] samplePosition;
     }
     int IntervalIndex = findIntervalIndex();
-    if(IntervalIndex >= 0)
+    if(IntervalIndex > 0) {
+        RefIndex = IntervalIndex - 1;
+        RefSegment.first = theRecHits[RefIndex];
+        RefSegment.second = theRecHits[RefIndex+1];
+        theRefRecHit = theRecHits[RefIndex];
         MeanMagneticField = getMeanMagneticField(IntervalIndex);
+    }
+    else {
+        RefIndex = 0; 
+        RefSegment.first = theRecHits[0];
+        RefSegment.second = theRecHits[1];
+        theRefRecHit = theRecHits[0];
+        MeanMagneticField = getMeanMagneticField(1);
+    }
+    
+    DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
+    if(fabs(DistanceZ) > ZError) { 
+        if(DistanceZ > ZError)
+            ZDirection = 1; 
+        else
+            ZDirection = -1;
+    }   
     else 
-        MeanMagneticField = GlobalVector(0, 0, 0);
+        ZDirection = 0;
 
     if(debug) cout << "MeanMagneticField: " << MeanMagneticField << ". DistanceXY: " << DistanceXY << ", DistanceZ: " << DistanceZ << endl;
 }
@@ -262,9 +291,6 @@ int SimRPCSeedPattern::findIntervalIndex() {
 
     if(debug) cout << "Find IntervalIndex: " << IntervalIndex << endl;
 
-    // The ref point index
-    RefIndex = IntervalIndex;
-
     return IntervalIndex;
 }
 
@@ -280,6 +306,9 @@ GlobalVector SimRPCSeedPattern::getMeanMagneticField(const int IntervalIndex) {
             sampleNumber++;
         }
     }
+    if(sampleNumber == 0)
+        sampleNumber = 1.;
+
     return theMagneticField / sampleNumber;
 }
 
@@ -308,49 +337,240 @@ int SimRPCSeedPattern::checkAlgorithm() {
             }
         }
     }
-    // Set algorithm choice with priority, 1-barrel_double_segment, 2-barrel_singal_segment, 3-endcap_singal_segment
+    // Set algorithm choice with priority, value/10=index_number_in_algorithm_parameter_vector, value%10=algorithm_type:1-barrel_double_segment, 2-barrel_singal_segment, 3-endcap_singal_segment
     if(debug) cout << "theBarrelOccupancyCode: " << theBarrelOccupancyCode << ", theEndcapOccupancyCode: " << theEndcapOccupancyCode << endl;
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelDoubleSegmentCode) == BarrelDoubleSegmentCode && (theBarrelOccupancyCode & BarrelDoubleSegmentOptionalCode) != 0)
-        AlgorithmChoice.push_back(1);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelSingleSegmentCode) == BarrelSingleSegmentCode && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode) != 0)
-        AlgorithmChoice.push_back(2);
-    if(isBarrel == false && isNegativeEndcap == true && isPositiveEndcap == false && (theEndcapOccupancyCode & EndcapSingleSegmentCode) == EndcapSingleSegmentCode && (theEndcapOccupancyCode & EndcapSingleSegmentOptionalCode) != 0)
-        AlgorithmChoice.push_back(3);
-    if(isBarrel == false && isNegativeEndcap == false && isPositiveEndcap == true && (theEndcapOccupancyCode & EndcapSingleSegmentCode) == EndcapSingleSegmentCode && (theEndcapOccupancyCode & EndcapSingleSegmentOptionalCode) != 0)
-        AlgorithmChoice.push_back(3);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelDoubleSegmentCode1)
+        AlgorithmChoice.push_back(11);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelDoubleSegmentCode2)
+        AlgorithmChoice.push_back(21);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode1)
+        AlgorithmChoice.push_back(32);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode2)
+        AlgorithmChoice.push_back(42);
+    if(isBarrel == false && isNegativeEndcap == true && isPositiveEndcap == false && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
+        AlgorithmChoice.push_back(53);
+    if(isBarrel == false && isNegativeEndcap == false && isPositiveEndcap == true && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
+        AlgorithmChoice.push_back(53);
 
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
-    if(debug) cout << " AlgorithmChoice[0]: " << AlgorithmChoice[0] << ", size: " << AlgorithmChoice.size() << ". AlgorithmType: " << AlgorithmType << endl;
     if(AlgorithmType == 0 && AlgorithmChoice.size() > 0) {
-        if(checkParameters((unsigned int)AlgorithmChoice[0]))
-            FinalAlgorithm = AlgorithmChoice[0];
+        if(checkParameters((unsigned int)(AlgorithmChoice[0]/10)))
+            FinalAlgorithm = (int)AlgorithmChoice[0]/10;
     }
     else {
         for(unsigned int i = 0; i < AlgorithmChoice.size(); i++)
-            if(AlgorithmType == AlgorithmChoice[i])
-                if(checkParameters((unsigned int)AlgorithmType))
-                    FinalAlgorithm = AlgorithmType;
+            if(AlgorithmType == (int)(AlgorithmChoice[i]%10))
+                if(checkParameters((unsigned int)(AlgorithmChoice[i]/10)))
+                    FinalAlgorithm = (int)AlgorithmChoice[i]/10;
     }
+
+    if(isVertexConstraint == false)
+        FinalAlgorithm = FinalAlgorithm * 2 - 1;
+    else
+        FinalAlgorithm = FinalAlgorithm * 2;
+
     cout << "Choose FinalAlgorithm: " << FinalAlgorithm << endl;
     return FinalAlgorithm;
 }
 
 bool SimRPCSeedPattern::checkParameters(unsigned int theAlgorithmType) {
 
+    unsigned int AlgorithmIndex;
+    if(isVertexConstraint == false)
+        AlgorithmIndex = theAlgorithmType * 2 - 1;
+    else
+        AlgorithmIndex = theAlgorithmType * 2;
+
     bool isParametersSet = true;
-    if(BendingPhiLowerTH.size() < theAlgorithmType || BendingPhiUpperTH.size() < theAlgorithmType || MeanPt_Parameter0.size() < theAlgorithmType || MeanPt_Parameter1.size() < theAlgorithmType || MeanPt_Parameter2.size() < theAlgorithmType || SigmaPt_Parameter0.size() < theAlgorithmType || SigmaPt_Parameter1.size() < theAlgorithmType || SigmaPt_Parameter2.size() < theAlgorithmType )
+    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
         isParametersSet = false;
 
     if(debug) cout << "checkParameters for Algorithm: " << theAlgorithmType << ". isSet: " << isParametersSet << endl;
     return isParametersSet;
 }
 
-void SimRPCSeedPattern::getPatternfromSimData() {
+void SimRPCSeedPattern::createPattern() {
+
+    BendingFilter.clear();
+    if(Algorithm == 1) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+    }
+    if(Algorithm == 2) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+    }
+    if(Algorithm == 3) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+    }
+    if(Algorithm == 4) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+    }
+    if(Algorithm == 5) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+    }
+    if(Algorithm == 6) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+    }
+    if(Algorithm == 7) {
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+    }
+    if(Algorithm == 8) {
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+    }
+
+    BendingPhiCollection.clear();
+    for(unsigned int Index = 0; Index < BendingFilter.size(); Index++) {
+        int i = BendingFilter[Index].m[0];
+        int j = BendingFilter[Index].m[1];
+        int k = BendingFilter[Index].m[2];
+        int l = BendingFilter[Index].m[3];
+        if(i != j)
+            BendingPhi[i][j] = ((GlobalVector)(theRecHitPosition[j] - theRecHitPosition[i])).phi();
+        else
+            BendingPhi[i][j] = ((GlobalVector)(theRecHitPosition[j] - GlobalPoint(0,0,0))).phi();
+        BendingPhi[k][l] = ((GlobalVector)(theRecHitPosition[l] - theRecHitPosition[k])).phi();
+        double TempBendingPhi = (BendingPhi[k][l]-BendingPhi[i][j]).value();
+        // vertex bendingPhi is reverse w.r.t normal case
+        if(i == j)
+            TempBendingPhi *= -1.;
+        BendingPhiCollection.push_back(TempBendingPhi);
+    }
+    BendingPhiMax = findMaxBendingPhi();
+    
+    // set the signal
+    isGoodPattern = -1;
+    isPatternChecked = false;
+}
+
+void SimRPCSeedPattern::checkDoubleSegmentPattern() {
+    if(isPatternChecked == true)
+        return;
+
+    isGoodPattern = 1;
+
+    if(BendingPhiCollection.size() < 3 || Algorithm <= 0 || Algorithm > 4)
+        isGoodPattern = -1;
+    else {
+        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
+            << endl;
+
+        if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+            isGoodPattern = -1;
+        if(applyFilter == true) 
+            if(BendingPhiCollection[0]*BendingPhiCollection[2] < 0.)
+                isGoodPattern = -1;
+        
+        // Check the Z direction
+        if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
+        for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
+            if(ZDirection == 0) {
+                if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
+                    if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
+                    isGoodPattern = -1;
+                }
+            }
+            else {
+                if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
+                    if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
+                    isGoodPattern = -1;
+                }
+            }
+        }
+    }
+    isPatternChecked = true;
+}
+
+void SimRPCSeedPattern::checkSingleSegmentPattern() {
+    if(isPatternChecked == true)
+        return;
+
+    isGoodPattern = 1;
+
+    if(BendingPhiCollection.size() < 2 || Algorithm <= 4 || Algorithm > 8)
+        isGoodPattern = -1;
+    else {
+        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
+            << endl;
+
+        if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+            isGoodPattern = -1;
+        if(applyFilter == true)
+            if(BendingPhiCollection[0]*(BendingPhiCollection[1]-BendingPhiCollection[0]) < 0.)
+                isGoodPattern = -1;
+
+        // Check the Z direction
+        if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
+        for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
+            if(ZDirection == 0) {
+                if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
+                    if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
+                    isGoodPattern = -1;
+                }
+            }
+            else {
+                if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
+                    if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
+                    isGoodPattern = -1;
+                }
+            }
+        }
+    }
+    isPatternChecked = true;
+}
+
+double SimRPCSeedPattern::findMaxBendingPhi() {
+    double MaxBendingPhi = 0.;
+    double TempBendingPhi;
+    for(unsigned int Index = 0; Index < BendingPhiCollection.size(); Index++) {
+        TempBendingPhi = BendingPhiCollection[Index];
+        if(fabs(TempBendingPhi) > fabs(MaxBendingPhi))
+            MaxBendingPhi = TempBendingPhi;
+    }
+    return MaxBendingPhi;
+}
+
+void SimRPCSeedPattern::computePatternfromSimData() {
 
     if(debug) cout << "estimating RPC Seed by SimData..." << endl;
+    
+    if(isGoodPattern < 0 || isPatternChecked == false) {
+        if(debug) cout << "Pattern not pass filter." << endl;
+        MeanPt = 0.;
+        SigmaPt = 0.;
+        Charge = 0;
+        Momentum = GlobalVector(0, 0, 0);
+        isGoodPattern = -1;
+        return;
+    }
 
-    isPatternChecked = false;
+    isGoodPattern = 1;
+    if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
+        BendingWise = 0;
+        Charge = 0;
+        isGoodPattern = 0;
+    }   
+    else {
+        BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
+        Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
+    }
 
     if(RecHit2SimHitMap.find(theRecHits[RefIndex]) != RecHit2SimHitMap.end()) {
         const PSimHit& thePSimHit = RecHit2SimHitMap[theRecHits[RefIndex]];
@@ -367,7 +587,6 @@ void SimRPCSeedPattern::getPatternfromSimData() {
         MeanPt = 0.;
         SigmaPt = 0.;
         Charge = 0;
-        isPatternChecked = true;
         isGoodPattern = -1;
     }
 
@@ -377,10 +596,6 @@ void SimRPCSeedPattern::getPatternfromSimData() {
 
 void SimRPCSeedPattern::checkPatternfromSimData() {
 
-    if(isPatternChecked == true)
-        return;
-
-    isGoodPattern = 1;
     if(abs(RefParticleType) != 13)
         isGoodPattern = -1;
 
@@ -398,28 +613,7 @@ void SimRPCSeedPattern::checkPatternfromSimData() {
     if(SeedPurity < SeedPurityTH)
         isGoodPattern = -1;
 
-    if(Algorithm == 1) {
-        SegmentRB.clear();
-        SegmentRB.resize(2);
-        int n = 0;
-        for(int Index = 0; Index <= 3; Index++) {
-            if((Index%2) == 0)
-                SegmentRB[n].first = theRecHits[Index];
-            if((Index%2) == 1) {
-                SegmentRB[n].second = theRecHits[Index];
-                n++;
-            }
-        }
-        GlobalVector SegmentVector0 = (GlobalVector)((SegmentRB[0].second)->globalPosition() - (SegmentRB[0].first)->globalPosition());
-        GlobalVector SegmentVector1 = (GlobalVector)((SegmentRB[1].second)->globalPosition() - (SegmentRB[1].first)->globalPosition());
-        double BendingPhi = (SegmentVector1.phi() - SegmentVector0.phi()).value();
-        if(fabs(BendingPhi) <= BendingPhiLowerTH[Algorithm-1])
-            isGoodPattern = -1;
-    }
-
     if(debug) cout << "SeedRecHitNumber: " << SeedRecHitNumber << ", SeedPurity: " << SeedPurity << endl;
-
-    isPatternChecked = true;
 }
 
 
@@ -431,20 +625,18 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createFakeSeed(int&
     Charge = 0;
     Momentum = GlobalVector(0., 0., 0.);
 
-    const ConstMuonRecHitPointer theBestRefRecHit = BestRefRecHit();
-
-    LocalPoint RefPosition = theBestRefRecHit->localPosition();
-    LocalVector RefMomentum = theBestRefRecHit->det()->toLocal(Momentum);
+    LocalPoint RefPosition = theRefRecHit->localPosition();
+    LocalVector RefMomentum = theRefRecHit->det()->toLocal(Momentum);
     LocalTrajectoryParameters theLTP(RefPosition, RefMomentum, Charge);
 
     AlgebraicSymMatrix theErrorMatrix(5,0);
-    theErrorMatrix = theBestRefRecHit->parametersError().similarityT(theBestRefRecHit->projectionMatrix());
+    theErrorMatrix = theRefRecHit->parametersError().similarityT(theRefRecHit->projectionMatrix());
     theErrorMatrix[0][0] = 0.;
     LocalTrajectoryError theLTE(theErrorMatrix);
 
-    TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theBestRefRecHit->det()->surface(), &*theMagneticField);
+    TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
 
-    DetId theDetId = theBestRefRecHit->geographicalId();
+    DetId theDetId = theRefRecHit->geographicalId();
     TrajectoryStateTransform theTST;
     PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
 
@@ -470,17 +662,15 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createSeed(int& isG
     }
 
     if(debug) cout << "now creating a seed." << endl;
-    // Get the reference recHit, DON'T use the recHit on 1st layer(inner most layer)
-    const ConstMuonRecHitPointer theBestRefRecHit = BestRefRecHit();
 
     //RefPosition is replaced by simHit local position
-    //LocalPoint RefPosition = theBestRefRecHit->localPosition();
+    //LocalPoint RefPosition = theRefRecHit->localPosition();
     Local3DPoint RefPosition = RecHit2SimHitMap[theRecHits[RefIndex]].localPosition();
-    LocalVector RefMomentum = theBestRefRecHit->det()->toLocal(Momentum);
+    LocalVector RefMomentum = theRefRecHit->det()->toLocal(Momentum);
     LocalTrajectoryParameters theLTP(RefPosition, RefMomentum, Charge);
-    LocalTrajectoryError theLTE = getErrorMatrix(theBestRefRecHit);
-    TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theBestRefRecHit->det()->surface(), &*theMagneticField);
-    DetId theDetId = theBestRefRecHit->geographicalId();
+    LocalTrajectoryError theLTE = getErrorMatrix();
+    TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
+    DetId theDetId = theRefRecHit->geographicalId();
     TrajectoryStateTransform theTST;
     PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
 
@@ -504,7 +694,7 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createSeed(int& isG
     return theWeightedSeed;
 }
 
-LocalTrajectoryError SimRPCSeedPattern::getErrorMatrix(const ConstMuonRecHitPointer& theRefRecHit) {
+LocalTrajectoryError SimRPCSeedPattern::getErrorMatrix() {
 
     // for possable lack of error matrix element[i][j], we use 5 parameter to construct theLTE;
     double dX = 0;
@@ -519,25 +709,6 @@ LocalTrajectoryError SimRPCSeedPattern::getErrorMatrix(const ConstMuonRecHitPoin
     theErrorMatrix = theRefRecHit->parametersError().similarityT(theRefRecHit->projectionMatrix());   
     dX = sqrt(theErrorMatrix[3][3]);
     dY = sqrt(theErrorMatrix[4][4]);
-    /*
-       LocalError theLocalError = (SegmentRB[0].first)->localPositionError();
-       double dXatRef = sqrt(theLocalError.xx());
-       double dYatRef = sqrt(theLocalError.yy());
-       const GeomDetUnit* RefRPCRoll = (SegmentRB[0].second)->detUnit();
-       LocalPoint RecHit0 = RefRPCRoll->toLocal((SegmentRB[0].first)->globalPosition());
-       LocalPoint RecHit1 = RefRPCRoll->toLocal((SegmentRB[0].second)->globalPosition());
-       LocalVector LocalSegment0 = (LocalVector)(RecHit1 - RecHit0);
-       LocalVector LocalSegment1 = LocalVector(LocalSegment0.x()+2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
-       LocalVector LocalSegment2 = LocalVector(LocalSegment0.x()-2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
-       LocalVector LocalSegment3 = LocalVector(LocalSegment0.x(), LocalSegment0.y()+2*dYatRef, LocalSegment0.z());
-       LocalVector LocalSegment4 = LocalVector(LocalSegment0.x(), LocalSegment0.y()-2*dYatRef, LocalSegment0.z());
-       double dXdZ1 = LocalSegment1.x() / LocalSegment1.z() - LocalSegment0.x() / LocalSegment0.z();
-       double dXdZ2 = LocalSegment2.x() / LocalSegment2.z() - LocalSegment0.x() / LocalSegment0.z();
-       dXdZ = (fabs(dXdZ1) >= fabs(dXdZ2)) ? dXdZ1 : dXdZ2;
-       double dYdZ1 = LocalSegment3.y() / LocalSegment3.z() - LocalSegment0.y() / LocalSegment0.z();
-       double dYdZ2 = LocalSegment4.y() / LocalSegment4.z() - LocalSegment0.y() / LocalSegment0.z();
-       dYdZ = (fabs(dYdZ1) >= fabs(dYdZ2)) ? dYdZ1 : dYdZ2;
-    */
     dXdZ = 0.1;
     dYdZ = 0.3;
     double SigmaP = SigmaPt * Momentum.mag() / MeanPt;
@@ -545,12 +716,4 @@ LocalTrajectoryError SimRPCSeedPattern::getErrorMatrix(const ConstMuonRecHitPoin
 
     LocalTrajectoryError theLTE(dX, dY, dXdZ, dYdZ, dPInv);
     return theLTE;
-}
-
-SimRPCSeedPattern::ConstMuonRecHitPointer SimRPCSeedPattern::BestRefRecHit() const {
-
-    if(RefIndex >= 0 && RefIndex < (int)theRecHits.size()-1)
-        return theRecHits[RefIndex];
-    else
-        return theRecHits[0];
 }

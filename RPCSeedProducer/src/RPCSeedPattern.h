@@ -9,7 +9,8 @@
  */
 
 
-#include "FWCore/Framework/interface/EventSetup.h"
+#include "MyModule/RPCSeedProducer/src/RPCSeedData.h"
+#include <FWCore/Framework/interface/EventSetup.h>
 #include <DataFormats/TrajectorySeed/interface/TrajectorySeed.h>
 #include <RecoMuon/TransientTrackingRecHit/interface/MuonTransientTrackingRecHit.h>
 #include <MagneticField/Engine/interface/MagneticField.h>
@@ -18,23 +19,21 @@
 #include <TrackingTools/TrajectoryParametrization/interface/LocalTrajectoryError.h>
 #include <vector>
 
-#ifndef upper_limit_pt
-#define upper_limit_pt 100
-#endif
-
-#ifndef lower_limit_pt
-#define lower_limit_pt 3.0
-#endif
-
-
 class RPCSeedPattern {
 
+    public:
     typedef MuonTransientTrackingRecHit::MuonRecHitPointer MuonRecHitPointer;
     typedef MuonTransientTrackingRecHit::ConstMuonRecHitPointer ConstMuonRecHitPointer;
     typedef MuonTransientTrackingRecHit::MuonRecHitContainer MuonRecHitContainer;
     typedef MuonTransientTrackingRecHit::ConstMuonRecHitContainer ConstMuonRecHitContainer;
 
-    public:
+    class BendingPhiIndexType {
+        public:
+            BendingPhiIndexType() {m[0] = 0; m[1] = 0; m[2] = 0; m[3] = 0;};
+            BendingPhiIndexType(int a0, int a1, int a2, int a3) {m[0] = a0; m[1] = a1; m[2] = a2; m[3] = a3;};
+            int m[4];
+    };
+
     typedef std::pair<ConstMuonRecHitPointer, ConstMuonRecHitPointer> RPCSegment;
     typedef std::pair<TrajectorySeed, double> WeightedTrajectorySeed;
 
@@ -50,17 +49,15 @@ class RPCSeedPattern {
     WeightedTrajectorySeed seed(const edm::EventSetup& eSetup, int& isGoodSeed); 
     int checkAlgorithm();
     bool checkParameters(unsigned int theAlgorithmType);
-    void DoubleSegmentPattern();
-    void computePtwithDoubleSegment();
+    void createPattern();
     void checkDoubleSegmentPattern();
-    void SingleSegmentPattern();
-    void computePtwithSingleSegment();
     void checkSingleSegmentPattern();
+    void computeSegmentPattern();
+    double findMaxBendingPhi();
     void measureRecHitandMagneticField();
     int findIntervalIndex();
     GlobalVector getMeanMagneticField(const int IntervalIndex);
-    ConstMuonRecHitPointer BestRefRecHit() const;
-    LocalTrajectoryError getErrorMatrix(const ConstMuonRecHitPointer& theRefRecHit);
+    LocalTrajectoryError getErrorMatrix();
     WeightedTrajectorySeed createFakeSeed(int& isGoodSeed);
     WeightedTrajectorySeed createSeed(int& isGoodSeed);
     //double getDistance(const ConstMuonRecHitPointer& precHit, const GlobalVector& Center) const;
@@ -72,30 +69,43 @@ class RPCSeedPattern {
     double MagnecticFieldThreshold;
     unsigned int sampleCount;
     int AlgorithmType;
+    bool isVertexConstraint;
+    bool isContinuousFilter;
+    bool applyFilter;
+    std::vector<double> Cut1234;
+    std::vector<double> CutMax;
     std::vector<double> BendingPhiLowerTH;
     std::vector<double> BendingPhiUpperTH;
+    std::vector<double> BendingPhiFitValueUpperLimit;
+    std::vector<double> BendingPhiFitSigmaUpperLimit;
     std::vector<double> MeanPt_Parameter0;
     std::vector<double> MeanPt_Parameter1;
     std::vector<double> MeanPt_Parameter2;
     std::vector<double> SigmaPt_Parameter0;
     std::vector<double> SigmaPt_Parameter1;
     std::vector<double> SigmaPt_Parameter2;
-    
+
     // signals
     bool isConfigured;
     bool isRecHitset;
+    bool isPatternChecked;
     // recHits collection
     ConstMuonRecHitContainer theRecHits;
-    std::vector<unsigned int> theRecHitLayers;
+    std::vector<int> theRecHitLayers;
+    GlobalPoint theRecHitPosition[BarrelLayerNumber+EachEndcapLayerNumber];
     edm::ESHandle<MagneticField> theMagneticField;
     // magnetic field info
     std::vector<GlobalVector> sampleMagneticField;
     std::vector<bool> IntervalMagneticFlux;
     GlobalVector MeanMagneticField;
-    // double segment pattern
+    // Pattern parameter
     int Algorithm;
     int RefIndex;
-    std::vector<RPCSegment> SegmentRB;
+    std::vector<double> BendingPhiCollection;
+    std::vector<BendingPhiIndexType> BendingFilter;
+    RPCSegment RefSegment;
+    ConstMuonRecHitPointer theRefRecHit;
+    double BendingPhiMax;
     int BendingWise;
     int ZDirection;
     double MeanPt;
@@ -104,9 +114,7 @@ class RPCSeedPattern {
     double DistanceXY;
     double DistanceZ;
     GlobalVector Momentum;
-    double PhiResidualRB[4];
-    // pattern estimation part
-    bool isPatternChecked;
+    // pattern estimation
     int isGoodPattern;
     double PatternQuality;
 };

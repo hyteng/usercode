@@ -23,24 +23,44 @@
 #endif
 
 
-#ifndef BarrelDoubleSegmentCode
-#define BarrelDoubleSegmentCode 15 // 001111
+#ifndef BarrelDoubleSegmentCode1
+#define BarrelDoubleSegmentCode1 47 // 101111
 #endif
- 
+
+#ifndef BarrelDoubleSegmentCode2
+#define BarrelDoubleSegmentCode2 31 // 011111
+#endif
+
 #ifndef BarrelDoubleSegmentOptionalCode
 #define BarrelDoubleSegmentOptionalCode 48 // 110000
 #endif
 
-#ifndef BarrelSingleSegmentCode
-#define BarrelSingleSegmentCode 11 // 001011
+#ifndef BarrelSingleSegmentCode1
+#define BarrelSingleSegmentCode1 51 // 110011
 #endif
 
-#ifndef BarrelSingleSegmentOptionalCode
-#define BarrelSingleSegmentOptionalCode 48 // 110000
+#ifndef BarrelSingleSegmentCode2
+#define BarrelSingleSegmentCode2 60 // 111100
 #endif
 
-#ifndef EndcapSingleSegmentCode
-#define EndcapSingleSegmentCode 6 // 00110
+#ifndef BarrelSingleSegmentOptionalCode1
+#define BarrelSingleSegmentOptionalCode1 3 // 000011
+#endif
+
+#ifndef BarrelSingleSegmentOptionalCode2
+#define BarrelSingleSegmentOptionalCode2 12 // 001100
+#endif
+
+#ifndef BarrelSingleSegmentOptionalCode3
+#define BarrelSingleSegmentOptionalCode3 16 // 010000
+#endif
+
+#ifndef BarrelSingleSegmentOptionalCode4
+#define BarrelSingleSegmentOptionalCode4 32 // 100000
+#endif
+
+#ifndef EndcapSingleSegmentCode1
+#define EndcapSingleSegmentCode1 15 // 1111
 #endif
 
 #ifndef EndcapSingleSegmentOptionalCode
