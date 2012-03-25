@@ -136,7 +136,7 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
 
     Algorithm = checkAlgorithm();
     createPattern();
-    if(Algorithm <= 4 && Algorithm >= 0)
+    if(Algorithm <= 4 && Algorithm >= 1)
         checkDoubleSegmentPattern();
     if(Algorithm >= 5 && Algorithm <= 12)
         checkSingleSegmentPattern();

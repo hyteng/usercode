@@ -345,13 +345,18 @@ int SimRPCSeedPattern::checkAlgorithm() {
         AlgorithmChoice.push_back(21);
     if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode1)
         AlgorithmChoice.push_back(32);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode2)
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode1) == BarrelSingleSegmentOptionalCode1 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode2) != 0 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode4) == BarrelSingleSegmentOptionalCode4)
         AlgorithmChoice.push_back(42);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode1) == BarrelSingleSegmentOptionalCode1 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode2) != 0 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode3) == BarrelSingleSegmentOptionalCode3)
+        AlgorithmChoice.push_back(52);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode2)
+        AlgorithmChoice.push_back(62);
     if(isBarrel == false && isNegativeEndcap == true && isPositiveEndcap == false && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
-        AlgorithmChoice.push_back(53);
+        AlgorithmChoice.push_back(73);
     if(isBarrel == false && isNegativeEndcap == false && isPositiveEndcap == true && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
-        AlgorithmChoice.push_back(53);
+        AlgorithmChoice.push_back(83);
 
+ 
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
     if(AlgorithmType == 0 && AlgorithmChoice.size() > 0) {
@@ -402,8 +407,8 @@ void SimRPCSeedPattern::createPattern() {
         BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
         BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
     }
     if(Algorithm == 3) {
         BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
@@ -414,8 +419,8 @@ void SimRPCSeedPattern::createPattern() {
         BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
         BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
     }
     if(Algorithm == 5) {
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
@@ -427,10 +432,40 @@ void SimRPCSeedPattern::createPattern() {
         BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
     }
     if(Algorithm == 7) {
+        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
+        else
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+    }
+    if(Algorithm == 8) {
+        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
+        else
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+    }
+    if(Algorithm == 9) {
+        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
+        else
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+    }
+    if(Algorithm == 10) {
+        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
+        else
+            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
+        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+    }
+    if(Algorithm == 11) {
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
     }
-    if(Algorithm == 8) {
+    if(Algorithm == 12) {
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
         BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
@@ -504,7 +539,7 @@ void SimRPCSeedPattern::checkSingleSegmentPattern() {
 
     isGoodPattern = 1;
 
-    if(BendingPhiCollection.size() < 2 || Algorithm <= 4 || Algorithm > 8)
+    if(BendingPhiCollection.size() < 2 || Algorithm <= 4 || Algorithm > 12)
         isGoodPattern = -1;
     else {
         if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
