@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2009/10/31 02:00:48 $
- *  $Revision: 1.2 $
+ *  $Date: 2012/03/25 18:28:14 $
+ *  $Revision: 1.4 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -541,7 +541,7 @@ void RPCSeedPattern::computeSegmentPattern() {
         if(fabs(BendingPhiMax) > BendingPhiFitSigmaUpperLimit[Algorithm-1])
             theBendingPhi = BendingPhiFitSigmaUpperLimit[Algorithm-1];
         SigmaPt = theBendingPhi * theBendingPhi * SigmaPt_Parameter0[Algorithm-1] + theBendingPhi * SigmaPt_Parameter1[Algorithm-1] + SigmaPt_Parameter2[Algorithm-1];
-        SigmaPt *= 3.;
+        //SigmaPt *= 3.; in STA filter it will be applied
     }
     else {
         isGoodPattern = 0;
