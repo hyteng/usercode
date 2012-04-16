@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id$
+// $Id: RPCBendingAnalyzer.cc,v 1.1 2012/04/16 12:03:39 hyteng Exp $
 //
 //
 
@@ -119,6 +119,7 @@ class RPCBendingAnalyzer : public EDAnalyzer {
         unsigned int RPCBendingLayer[6];
         int ClusterSize[6];
         int BX[6];
+        double Eta[6];
         double simPtatRef[6]; // Ref recHit is in layer1(RB1out) for Barrel
 };
 
@@ -160,7 +161,8 @@ RPCBendingAnalyzer::RPCBendingAnalyzer(const ParameterSet& iConfig) {
     ExTree->Branch("RPCBendingLayer", RPCBendingLayer, "RPCBendingLayer[6]/i");
     ExTree->Branch("simPtatRef", simPtatRef, "simPtatRef[6]/D");
     ExTree->Branch("ClusterSize", ClusterSize, "ClusterSize[6]/I");
-    ExTree->Branch("BX", BX, "BX/I");
+    ExTree->Branch("BX", BX, "BX[6]/I");
+    ExTree->Branch("Eta", Eta, "Eta[6]/D");
     // Set simTrack index
     EventNumber = 0;
 }
@@ -459,6 +461,7 @@ void RPCBendingAnalyzer::fillBendingInfo() {
         LocalPoint LocalPosition = recHitSample[i].localPosition();  
         GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
         recHitPosition.push_back(GlobalPosition);
+        Eta[i] = GlobalPosition.eta();
     }
 
     /*
