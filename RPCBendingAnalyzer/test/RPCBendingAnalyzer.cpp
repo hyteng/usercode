@@ -48,7 +48,7 @@ class RPCBendingAnalyzer {
         int simTrackId;
         int simTrackType;
         double simTrackMomentumPt;
-        double simTrackMomentumPhi;
+        double simTrackMomentumEta;
         int simTrackCharge;
         int simTrackvalid;
         double simHitBendingPhi[6][6];
@@ -74,6 +74,7 @@ class RPCBendingAnalyzer {
         double theRefPt;
         double simBendingPhiMax;
         double recBendingPhiMax;
+        double recBendingPhiMin;
         std::vector<int> BendingPhiMaxFilter[8];
 
         string PatternFix;
@@ -87,6 +88,7 @@ class RPCBendingAnalyzer {
         TH2D* recHitBendingPhiHist[3][4][4][6];
         TH2D* simHitBendingPhiMaxHist;
         TH2D* recHitBendingPhiMaxHist;
+        TH2D* recHitBendingPhiMinHist;
         string theDrawOption;
 };
 
@@ -108,7 +110,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     applyFilter = applyFilterPara;   
     theDrawOption = DrawOptionPara;
 
-    //gStyle->SetOptTitle(0);
+    gStyle->SetOptTitle(0);
     gStyle->SetOptStat("");
 
     if(debug) cout << "PatternType: " << PatternType << ", Draw option: " << theDrawOption << ", PtScale: " << PtScale << ", SegmentBendingCut: " << SegmentBendingCut << ", MaxBendingCut: " << MaxBendingCut << ", applyFilter: " << applyFilter << endl;
@@ -167,7 +169,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     Tree0->SetBranchAddress("simTrackId", &simTrackId);
     Tree0->SetBranchAddress("simTrackType", &simTrackType);
     Tree0->SetBranchAddress("simTrackMomentumPt", &simTrackMomentumPt);
-    Tree0->SetBranchAddress("simTrackMomentumPhi", &simTrackMomentumPhi);
+    Tree0->SetBranchAddress("simTrackMomentumEta", &simTrackMomentumEta);
     Tree0->SetBranchAddress("simTrackCharge", &simTrackCharge);
     Tree0->SetBranchAddress("simTrackvalid", &simTrackvalid);
     Tree0->SetBranchAddress("simHitBendingPhi", simHitBendingPhi);
@@ -259,13 +261,18 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     simHitBendingPhiMaxHist = new TH2D(simHitBendingPhiMaxHistName.c_str(), simHitBendingPhiMaxHistName.c_str(), PtScale*20, -1.*PtScale, PtScale, PhiBins*10, -1.*PI/6., PI/6.);
     string recHitBendingPhiMaxHistName = FinalOutput + "recHitBendingPhiMaxHist";
     recHitBendingPhiMaxHist = new TH2D(recHitBendingPhiMaxHistName.c_str(), recHitBendingPhiMaxHistName.c_str(), PtScale*20, -1.*PtScale, PtScale, PhiBins, -1.*PI/6., PI/6.);
+    string recHitBendingPhiMinHistName = FinalOutput + "recHitBendingPhiMinHist";
+    recHitBendingPhiMinHist = new TH2D(recHitBendingPhiMinHistName.c_str(), recHitBendingPhiMinHistName.c_str(), PtScale*20, -1.*PtScale, PtScale, PhiBins, -1.*PI/6., PI/6.);
 }
 
 void RPCBendingAnalyzer::analyze() {
 
-    int Nentries = Tree0->GetEntries();
+    int Nentries = Tree0->GetEntries() / 10;
     for(int i = 0; i < Nentries; i++) {
         Tree0->GetEntry(i);
+        
+        if(fabs(simTrackMomentumEta) > 0.4)
+            continue;
 
         if(debug) cout << "PatternType: " << PatternType << ", simTrackMomentumPt: " << simTrackMomentumPt << endl;
 
@@ -276,9 +283,18 @@ void RPCBendingAnalyzer::analyze() {
         
         // Pattern Filter
         if(PatternType == 40) {
-            // for special coverse/reverse plots
-            if(fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1])) < SegmentBendingCut || getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) * simTrackCharge < 0)
+            // observe mode for special coverse/reverse plots
+            //if(fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1])) < SegmentBendingCut && getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) * simTrackCharge < 0)
+                //continue;
+            if(fabs(recBendingPhiMax) >= MaxBendingCut) 
                 continue;
+            
+            if(recBendingPhiMax * simTrackCharge < 0.)
+                continue;
+
+            if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0. )//|| recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) < 0.)
+                continue;
+
             theRefPt = simPtatRef[0] * (double)simTrackCharge;
         }
 
@@ -383,8 +399,11 @@ double RPCBendingAnalyzer::getdPhi(double Phi1, double Phi0) {
 }
 
 void RPCBendingAnalyzer::getBendingPhiMax() {
+
     simBendingPhiMax = 0.;
     recBendingPhiMax = 0.;
+    recBendingPhiMin = 10.;
+
     double TempsimBendingPhi;
     double TemprecBendingPhi;
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
@@ -417,6 +436,8 @@ void RPCBendingAnalyzer::getBendingPhiMax() {
             simBendingPhiMax = TempsimBendingPhi;
         if(fabs(recBendingPhiMax) < fabs(TemprecBendingPhi))
             recBendingPhiMax = TemprecBendingPhi;
+        if(fabs(recBendingPhiMin) > fabs(TemprecBendingPhi))
+            recBendingPhiMin = TemprecBendingPhi;
     }
 }
 
@@ -459,6 +480,7 @@ void RPCBendingAnalyzer::fillBendingPhiHist() {
     }
     simHitBendingPhiMaxHist->Fill(theRefPt, simBendingPhiMax);
     recHitBendingPhiMaxHist->Fill(theRefPt, recBendingPhiMax);
+    recHitBendingPhiMinHist->Fill(theRefPt, recBendingPhiMin);
 }
 
 void RPCBendingAnalyzer::printHist() {
@@ -498,7 +520,11 @@ void RPCBendingAnalyzer::printHist() {
         BendingPhiCanvas->SaveAs(SaveName.c_str());
         SaveName = FinalOutput + "recHitBendingPhi" + IndexI + IndexJ + IndexK + IndexL + OutputFix;
         if(debug) cout << SaveName << endl;
-        recHitBendingPhiHist[i][j][k][l]->SetStats(0);
+        //recHitBendingPhiHist[i][j][k][l]->SetStats(0);
+        recHitBendingPhiHist[i][j][k][l]->GetXaxis()->SetTitle("simPt@Ref Gev");
+        recHitBendingPhiHist[i][j][k][l]->GetXaxis()->CenterTitle(1);
+        recHitBendingPhiHist[i][j][k][l]->GetYaxis()->SetTitle("Bending in Phi");
+        recHitBendingPhiHist[i][j][k][l]->GetYaxis()->CenterTitle(1);
         recHitBendingPhiHist[i][j][k][l]->Draw(theDrawOption.c_str());
         BendingPhiCanvas->SaveAs(SaveName.c_str());
     }
@@ -508,13 +534,26 @@ void RPCBendingAnalyzer::printHist() {
     string Index = TempIndex.str();
     SaveName = FinalOutput + "simHitBendingMaxPhi" + Index + OutputFix;
     if(debug) cout << SaveName << endl;
-    simHitBendingPhiMaxHist->SetStats(0);
+    //simHitBendingPhiMaxHist->SetStats(0);
     simHitBendingPhiMaxHist->Draw(theDrawOption.c_str());
     BendingPhiCanvas->SaveAs(SaveName.c_str());
     SaveName = FinalOutput + "recHitBendingMaxPhi" + Index + OutputFix;
     if(debug) cout << SaveName << endl;
-    recHitBendingPhiMaxHist->SetStats(0);
+    //recHitBendingPhiMaxHist->SetStats(0);
+    recHitBendingPhiMaxHist->GetXaxis()->SetTitle("simPt@Ref Gev");
+    recHitBendingPhiMaxHist->GetXaxis()->CenterTitle(1);
+    recHitBendingPhiMaxHist->GetYaxis()->SetTitle("Bending in Phi");
+    recHitBendingPhiMaxHist->GetYaxis()->CenterTitle(1);
     recHitBendingPhiMaxHist->Draw(theDrawOption.c_str());
+    BendingPhiCanvas->SaveAs(SaveName.c_str());
+    SaveName = FinalOutput + "recHitBendingMinPhi" + Index + OutputFix;
+    if(debug) cout << SaveName << endl;
+    //recHitBendingPhiMaxHist->SetStats(0);
+    recHitBendingPhiMinHist->GetXaxis()->SetTitle("simPt@Ref Gev");
+    recHitBendingPhiMinHist->GetXaxis()->CenterTitle(1);
+    recHitBendingPhiMinHist->GetYaxis()->SetTitle("Bending in Phi");
+    recHitBendingPhiMinHist->GetYaxis()->CenterTitle(1);
+    recHitBendingPhiMinHist->Draw(theDrawOption.c_str());
     BendingPhiCanvas->SaveAs(SaveName.c_str());
 }
 
@@ -728,6 +767,10 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
     TPad* Phi2MeanPtPad = new TPad("Phi2MeanPt", "Phi2MeanPt", 0, 0, 1, 1);
     Phi2MeanPtPad->Draw();
     Phi2MeanPtPad->cd();
+    Phi2MeanPtHist->GetXaxis()->SetTitle("max bending in Phi");
+    Phi2MeanPtHist->GetXaxis()->CenterTitle(1);
+    Phi2MeanPtHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
+    Phi2MeanPtHist->GetYaxis()->CenterTitle(1);
     Phi2MeanPtHist->Draw("");
     PtValueFunction->SetLineStyle(2);
     PtValueFunction->SetLineColor(3);
@@ -740,6 +783,10 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
     TPad* Phi2RMSPtPad = new TPad("Phi2RMSPt", "Phi2RMSPt", 0, 0, 1, 1);
     Phi2RMSPtPad->Draw();
     Phi2RMSPtPad->cd();
+    Phi2RMSPtHist->GetXaxis()->SetTitle("max bending in Phi");
+    Phi2RMSPtHist->GetXaxis()->CenterTitle(1);
+    Phi2RMSPtHist->GetYaxis()->SetTitle("sigma Pt estimation Gev");
+    Phi2RMSPtHist->GetYaxis()->CenterTitle(1);
     Phi2RMSPtHist->Draw("");
     PtErrorFunction->SetLineStyle(2);
     PtErrorFunction->SetLineColor(3);
@@ -752,6 +799,10 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
     TPad* Phi2StatisticRatoPad = new TPad("Phi2StatisticRato", "Phi2StatisticRato", 0, 0, 1, 1);
     Phi2StatisticRatoPad->Draw();
     Phi2StatisticRatoPad->cd();
+    Phi2StatisticRatoHist->GetXaxis()->SetTitle("max bending in Phi");
+    Phi2StatisticRatoHist->GetXaxis()->CenterTitle(1);
+    Phi2StatisticRatoHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
+    Phi2StatisticRatoHist->GetYaxis()->CenterTitle(1);
     Phi2StatisticRatoHist->Draw("");
     SaveName = FitHistName + "Phi2StatisticRato" + OutputFix;
     Phi2StatisticRatoCanvas->SaveAs(SaveName.c_str());
