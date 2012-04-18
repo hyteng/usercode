@@ -17,7 +17,8 @@
 #define PtScale 100
 
 void TrackAnalysisbyAssociator(string FileName) {
-
+    
+    gStyle->SetOptTitle(0);
     gStyle->SetOptStat("");
     if(debug) cout << FileName << endl;
     TFile* RootFile = TFile::Open(FileName.c_str());
@@ -148,7 +149,8 @@ void TrackAnalysisbyAssociator(string FileName) {
     TH1D* Particle2simPtHist = new TH1D("Particle2simPt", "Particle2simPt", (int)(PtScale/2), 0, PtScale);
     TH1D* STA2simPtHist = new TH1D("STA2simPt", "STA2simPt", (int)(PtScale/2), 0, PtScale);
     TH1D* Eff2simPtHist = new TH1D("STA2simPt", "STA2simPt", (int)(PtScale/2), 0, PtScale);
-    
+    TH1F* ChargeCheckHistTSOSmaxPurityHist = new TH1F("ChargeCheckHistTSOSmaxPurity", "ChargeCheckHistTSOSmaxPurity", 5, -2.5, 2.5);
+
     unsigned int trackingParticleMatch_temp;
     unsigned int efficiency_temp;
     double recTrackPurity_temp;
@@ -377,6 +379,7 @@ void TrackAnalysisbyAssociator(string FileName) {
             double tempSTABinValue = STA2simPtHist->GetBinContent(tempParticleBinNumber);
             tempSTABinValue += 1.;                        
             STA2simPtHist->SetBinContent(tempParticleBinNumber, tempSTABinValue);
+            ChargeCheckHistTSOSmaxPurityHist->Fill(simTrackCharge*recTrackCharge);
         }
     }
 	
@@ -524,4 +527,11 @@ void TrackAnalysisbyAssociator(string FileName) {
     EfficiencyEtamaxPurity->GetYaxis()->CenterTitle(1);
     EfficiencyEtamaxPurity->Draw();
     SaveName=FileName+"_EfficiencyEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
+    ChargeCheckHistTSOSmaxPurityHist->GetXaxis()->SetTitle("simCharge * recCharge");
+    ChargeCheckHistTSOSmaxPurityHist->GetXaxis()->CenterTitle(1);
+    ChargeCheckHistTSOSmaxPurityHist->GetYaxis()->SetTitle("Fraction %");
+    ChargeCheckHistTSOSmaxPurityHist->GetYaxis()->CenterTitle(1);
+    ChargeCheckHistTSOSmaxPurityHist->Scale(1./double(ChargeCheckHistTSOSmaxPurityHist->GetEntries()));
+    ChargeCheckHistTSOSmaxPurityHist->Draw();
+    SaveName=FileName+"_ChargeCheckHistTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
 }
