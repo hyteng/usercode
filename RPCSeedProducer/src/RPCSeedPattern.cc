@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/03/25 18:28:14 $
- *  $Revision: 1.4 $
+ *  $Date: 2012/04/14 05:53:32 $
+ *  $Revision: 1.5 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -57,6 +57,7 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     CutMax = iConfig.getParameter< vector<double> >("CutMax");
     BendingPhiLowerTH = iConfig.getParameter< vector<double> >("BendingPhiLowerTH");
     BendingPhiUpperTH = iConfig.getParameter< vector<double> >("BendingPhiUpperTH");
+    //ProbingPhiLowerTH = iConfig.getParameter< vector<double> >("ProbingPhiLowerTH");
     BendingPhiFitValueUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitValueUpperLimit");
     BendingPhiFitSigmaUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitSigmaUpperLimit");
     MeanPt_Parameter0 = iConfig.getParameter< vector<double> >("MeanPt_Parameter0");
@@ -523,6 +524,7 @@ void RPCSeedPattern::computeSegmentPattern() {
 
     isGoodPattern = 1;
     //double BendingPhi = findMaxBendingPhi();
+    /*
     if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
         BendingWise = 0;
         Charge = 0;
@@ -532,6 +534,9 @@ void RPCSeedPattern::computeSegmentPattern() {
         BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
         Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
     }
+    */
+    BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
+    Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
 
     if(fabs(BendingPhiMax) <= BendingPhiUpperTH[Algorithm-1] && fabs(BendingPhiMax) >= BendingPhiLowerTH[Algorithm-1]) {
         double theBendingPhi = fabs(BendingPhiMax);
@@ -541,12 +546,17 @@ void RPCSeedPattern::computeSegmentPattern() {
         if(fabs(BendingPhiMax) > BendingPhiFitSigmaUpperLimit[Algorithm-1])
             theBendingPhi = BendingPhiFitSigmaUpperLimit[Algorithm-1];
         SigmaPt = theBendingPhi * theBendingPhi * SigmaPt_Parameter0[Algorithm-1] + theBendingPhi * SigmaPt_Parameter1[Algorithm-1] + SigmaPt_Parameter2[Algorithm-1];
-        //SigmaPt *= 3.; in STA filter it will be applied
+        //SigmaPt *= 3.; //in STA filter it will be applied
     }
     else {
-        isGoodPattern = 0;
-        MeanPt = 0.;
-        SigmaPt = 0.;
+        if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
+            MeanPt = UpperLimitPt;
+            SigmaPt = UpperLimitPt / 2.;
+        }
+        if(fabs(BendingPhiMax) > BendingPhiUpperTH[Algorithm-1]) {
+            MeanPt = LowerLimitPt;
+            SigmaPt = LowerLimitPt / 2.;
+        }
     }
 
     GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());

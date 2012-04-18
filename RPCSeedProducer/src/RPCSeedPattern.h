@@ -76,6 +76,7 @@ class RPCSeedPattern {
     std::vector<double> CutMax;
     std::vector<double> BendingPhiLowerTH;
     std::vector<double> BendingPhiUpperTH;
+    //std::vector<double> ProbingPhiLowerTH;
     std::vector<double> BendingPhiFitValueUpperLimit;
     std::vector<double> BendingPhiFitSigmaUpperLimit;
     std::vector<double> MeanPt_Parameter0;

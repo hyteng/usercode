@@ -67,4 +67,12 @@
 #define EndcapSingleSegmentOptionalCode 24 // 11000
 #endif
 
+#ifndef UpperLimitPt
+#define UpperLimitPt 80.0
+#endif
+
+#ifndef LowerLimitPt
+#define LowerLimitPt 4.0
+#endif
+
 #endif
