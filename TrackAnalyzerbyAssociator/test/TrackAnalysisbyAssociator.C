@@ -500,7 +500,7 @@ void TrackAnalysisbyAssociator(string FileName) {
     SaveName=FileName+"_recTrackimpactMomentumofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackimpactPhiofTSOSmaxPurity->Draw("");
     SaveName=FileName+"_recTrackimpactPhiofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
-    recTrackimpactEtaofTSOSmaxPurity->Scale(1./(double)recTrackimpactEtaofTSOSmaxPurity->GetEntries());
+    recTrackimpactEtaofTSOSmaxPurity->Scale(100./(double)recTrackimpactEtaofTSOSmaxPurity->GetEntries());
     recTrackimpactEtaofTSOSmaxPurity->GetXaxis()->SetTitle("Eta");
     recTrackimpactEtaofTSOSmaxPurity->GetXaxis()->CenterTitle(1);
     recTrackimpactEtaofTSOSmaxPurity->GetYaxis()->SetTitle("Fraction %");
@@ -531,7 +531,7 @@ void TrackAnalysisbyAssociator(string FileName) {
     ChargeCheckHistTSOSmaxPurityHist->GetXaxis()->CenterTitle(1);
     ChargeCheckHistTSOSmaxPurityHist->GetYaxis()->SetTitle("Fraction %");
     ChargeCheckHistTSOSmaxPurityHist->GetYaxis()->CenterTitle(1);
-    ChargeCheckHistTSOSmaxPurityHist->Scale(1./double(ChargeCheckHistTSOSmaxPurityHist->GetEntries()));
+    ChargeCheckHistTSOSmaxPurityHist->Scale(100./double(ChargeCheckHistTSOSmaxPurityHist->GetEntries()));
     ChargeCheckHistTSOSmaxPurityHist->Draw();
     SaveName=FileName+"_ChargeCheckHistTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
 }
