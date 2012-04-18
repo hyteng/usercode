@@ -18,6 +18,7 @@
 
 void TrackAnalysisbyAssociator(string FileName) {
 
+    gStyle->SetOptStat("");
     if(debug) cout << FileName << endl;
     TFile* RootFile = TFile::Open(FileName.c_str());
 
@@ -139,12 +140,15 @@ void TrackAnalysisbyAssociator(string FileName) {
     TH1F* recTrackimpactPhiofTSOSmaxPurity = new TH1F("recTrackimpactPhiofTSOSmaxPurity", "recTrackimpactPhiofTSOSmaxPurity", 314, -PI, PI);
     TH1F* recTrackimpactEtaofTSOSmaxPurity = new TH1F("recTrackimpactEtaofTSOSmaxPurity", "recTrackimpactEtaofTSOSmaxPurity", 600, -3.0, 3.0);
     TH1F* recTrackimpactValidofTSOSmaxPurity = new TH1F("recTrackimpactValidofTSOSmaxPurity", "recTrackimpactValidofTSOSmaxPurity", 2, 0, 2);
+    TH1F* recTrackEtamaxPurity = new TH1F("recTrackEtamaxPurity", "recTrackEtamaxPurity", 600, -3.0, 3.0);
+    TH1F* EfficiencyEtamaxPurity = new TH1F("EfficiencyEtamaxPurity", "Efficiency w.r.t Eta", 600, -3.0, 3.0);
 
     TH1F* deltaPtatimpactTSOSmaxPurity = new TH1F("deltaPtatimpactTSOSmaxPurity", "deltaPtatimpactTSOSmaxPurity", (int)10*PtScale, -1.*PtScale, PtScale);
 
     TH1D* Particle2simPtHist = new TH1D("Particle2simPt", "Particle2simPt", (int)(PtScale/2), 0, PtScale);
     TH1D* STA2simPtHist = new TH1D("STA2simPt", "STA2simPt", (int)(PtScale/2), 0, PtScale);
-
+    TH1D* Eff2simPtHist = new TH1D("STA2simPt", "STA2simPt", (int)(PtScale/2), 0, PtScale);
+    
     unsigned int trackingParticleMatch_temp;
     unsigned int efficiency_temp;
     double recTrackPurity_temp;
@@ -186,6 +190,10 @@ void TrackAnalysisbyAssociator(string FileName) {
     int Nentries = T1->GetEntries(); 
     for(int i = 0; i < Nentries; i++) {
         T1->GetEntry(i);
+
+        if(fabs(simTrackEta) >= 0.8)
+            continue;
+
         if(trackingParticleMatch == 0) {
             EfficiencyforTrackingParticle->Fill(0);
             maxPurityperTrackingParticle->Fill(0);
@@ -205,9 +213,9 @@ void TrackAnalysisbyAssociator(string FileName) {
             //recTrackouterPhimaxPurity->Fill(0);
             //recTrackouterEtamaxPurity->Fill(0);
             //recTrackouterValidmaxPurity->Fill(0);
-            //simTrackMomentumPtmaxPurity->Fill(0);
-            //simTrackPhimaxPurity->Fill(0);
-            //simTrackEtamaxPurity->Fill(0);
+            simTrackMomentumPtmaxPurity->Fill(simTrackMomentumPt);
+            simTrackPhimaxPurity->Fill(simTrackPhi);
+            simTrackEtamaxPurity->Fill(simTrackEta);
             //simTrackinnerMomentummaxPurity->Fill(0);
             //simTrackinnerPhimaxPurity->Fill(0);
             //simTrackinnerEtamaxPurity->Fill(0);
@@ -272,6 +280,10 @@ void TrackAnalysisbyAssociator(string FileName) {
             while(nextStep) {
                 i++;
                 T1->GetEntry(i);
+                
+                if(fabs(simTrackEta) >= 0.8)
+                    continue;
+
                 if(trackingParticleMatch <= trackingParticleMatch_temp)
                     nextStep = false;
                 else
@@ -355,8 +367,9 @@ void TrackAnalysisbyAssociator(string FileName) {
             recTrackimpactPhiofTSOSmaxPurity->Fill(recTrackimpactPhiofTSOS_temp);
             recTrackimpactEtaofTSOSmaxPurity->Fill(recTrackimpactEtaofTSOS_temp);
             recTrackimpactValidofTSOSmaxPurity->Fill(recTrackimpactValidofTSOS_temp);
-            
-            deltaPtatimpactTSOSmaxPurity->Fill(recTrackimpactMomentumofTSOS_temp-simTrackMomentumPt_temp);
+            recTrackEtamaxPurity->Fill(simTrackEta_temp);
+           
+            deltaPtatimpactTSOSmaxPurity->Fill((recTrackimpactMomentumofTSOS_temp-simTrackMomentumPt_temp));
             int tempParticleBinNumber = STA2simPtHist->FindBin(simTrackMomentumPt_temp);
             double tempParticleBinValue = Particle2simPtHist->GetBinContent(tempParticleBinNumber);
             tempParticleBinValue += 1.;
@@ -366,19 +379,31 @@ void TrackAnalysisbyAssociator(string FileName) {
             STA2simPtHist->SetBinContent(tempParticleBinNumber, tempSTABinValue);
         }
     }
-	/*
+	
+    int BinNumber = simTrackEtamaxPurity->GetNbinsX();
+    for(int i = 1; i <= BinNumber; i++) {
+        double simTrackNumber = simTrackEtamaxPurity->GetBinContent(i);
+        double recTrackNumber = recTrackEtamaxPurity->GetBinContent(i);
+        if(simTrackNumber != 0.) {
+            double BinEffMean = 100. * recTrackNumber / simTrackNumber;
+            double BinEffError = sqrt(BinEffMean * (100. - BinEffMean) / simTrackNumber);
+            EfficiencyEtamaxPurity->SetBinContent(i, BinEffMean);
+            //EfficiencyEtamaxPurity->SetBinError(i, BinEffError);
+        }
+    }
+
     // get Eff2simPt
     for(int PtIndex = 1; PtIndex <= (int)(PtScale/2); PtIndex++) {
-        double ParticleBinValue = Particle2simPt->GetBinContent(PtIndex);
-        double STABinValue = STA2simPt->GetBinContent(PtIndex);
+        double ParticleBinValue = Particle2simPtHist->GetBinContent(PtIndex);
+        double STABinValue = STA2simPtHist->GetBinContent(PtIndex);
         if(ParticleBinValue == 0.)
             ParticleBinValue += 1.;
         double EfficiencyBinValue = STABinValue / ParticleBinValue * 100.;
         double EfficiencyBinError = sqrt(EfficiencyBinValue * (100. - EfficiencyBinValue) / ParticleBinValue);
-        Eff2simPt->SetBinContent(PtIndex, EfficiencyBinValue);
-        Eff2simPt->SetBinError(PtIndex, EfficiencyBinError);
+        Eff2simPtHist->SetBinContent(PtIndex, EfficiencyBinValue);
+        Eff2simPtHist->SetBinError(PtIndex, EfficiencyBinError);
     }
-    */
+    
     double minX = 0;
     double minY = 0;
     double maxX = 110;
@@ -390,90 +415,113 @@ void TrackAnalysisbyAssociator(string FileName) {
     myPad->Draw();
     myPad->cd();
 
+    string SaveName;
+
     EfficiencyforTrackingParticle->Draw("");
-    OutputCanvas->SaveAs("EfficiencyforTrackingParticle.png");
+    SaveName=FileName+"_EfficiencyforTrackingParticle.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(1);
     maxPurityperTrackingParticle->Draw("");
-    OutputCanvas->SaveAs("maxPurityperTrackingParticle.png");
+    SaveName=FileName+"_maxPurityperTrackingParticle.png";OutputCanvas->SaveAs(SaveName.c_str());
     MultiplicityperTrackingPartile->Draw("");
-    OutputCanvas->SaveAs("MultiplicityperTrackingPartile.png");
+    SaveName=FileName+"_MultiplicityperTrackingPartile.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(0);
     recTrackrefMomentummaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackrefMomentummaxPurity.png");
+    SaveName=FileName+"_recTrackrefMomentummaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackrefPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackrefPhimaxPurity.png");
+    SaveName=FileName+"_recTrackrefPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackrefEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackrefEtamaxPurity.png");
+    SaveName=FileName+"_recTrackrefEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerMomentummaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerMomentummaxPurity.png");
+    SaveName=FileName+"_recTrackinnerMomentummaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerPhimaxPurity.png");
+    SaveName=FileName+"_recTrackinnerPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerEtamaxPurity.png");
+    SaveName=FileName+"_recTrackinnerEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(1);
     recTrackinnerValidmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerValidmaxPurity.png");
+    SaveName=FileName+"_recTrackinnerValidmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(0);
     recTrackouterMomentummaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterMomentummaxPurity.png");
+    SaveName=FileName+"_recTrackouterMomentummaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackouterPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterPhimaxPurity.png");
+    SaveName=FileName+"_recTrackouterPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackouterEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterEtamaxPurity.png");
+    SaveName=FileName+"_recTrackouterEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(1);
     recTrackouterValidmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterValidmaxPurity.png");
+    SaveName=FileName+"_recTrackouterValidmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(0);
     simTrackMomentumPtmaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackMomentumPtmaxPurity.png");
+    SaveName=FileName+"_simTrackMomentumPtmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackPhimaxPurity.png");
+    SaveName=FileName+"_simTrackPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackEtamaxPurity.png");
+    SaveName=FileName+"_simTrackEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackinnerMomentummaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackinnerMomentummaxPurity.png");
+    SaveName=FileName+"_simTrackinnerMomentummaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackinnerPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackinnerPhimaxPurity.png");
+    SaveName=FileName+"_simTrackinnerPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackinnerEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackinnerEtamaxPurity.png");
+    SaveName=FileName+"_simTrackinnerEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackinnerMatchmaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackinnerMatchmaxPurity.png");
+    SaveName=FileName+"_simTrackinnerMatchmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackouterMomentummaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackouterMomentummaxPurity.png");
+    SaveName=FileName+"_simTrackouterMomentummaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackouterPhimaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackouterPhimaxPurity.png");
+    SaveName=FileName+"_simTrackouterPhimaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackouterEtamaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackouterEtamaxPurity.png");
+    SaveName=FileName+"_simTrackouterEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     simTrackouterMatchmaxPurity->Draw("");
-    OutputCanvas->SaveAs("simTrackouterMatchmaxPurity.png");
+    SaveName=FileName+"_simTrackouterMatchmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerMomentumofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerMomentumofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackinnerMomentumofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerPhiofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerPhiofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackinnerPhiofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackinnerEtaofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerEtaofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackinnerEtaofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(1);
     recTrackinnerValidofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackinnerValidofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackinnerValidofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(0);
     recTrackouterMomentumofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterMomentumofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackouterMomentumofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackouterPhiofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterPhiofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackouterPhiofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackouterEtaofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterEtaofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackouterEtaofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(1);
     recTrackouterValidofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackouterValidofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackouterValidofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     myPad->SetLogy(0);
     recTrackimpactMomentumofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackimpactMomentumofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackimpactMomentumofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackimpactPhiofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackimpactPhiofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackimpactPhiofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
+    recTrackimpactEtaofTSOSmaxPurity->Scale(1./(double)recTrackimpactEtaofTSOSmaxPurity->GetEntries());
+    recTrackimpactEtaofTSOSmaxPurity->GetXaxis()->SetTitle("Eta");
+    recTrackimpactEtaofTSOSmaxPurity->GetXaxis()->CenterTitle(1);
+    recTrackimpactEtaofTSOSmaxPurity->GetYaxis()->SetTitle("Fraction %");
+    recTrackimpactEtaofTSOSmaxPurity->GetYaxis()->CenterTitle(1);
     recTrackimpactEtaofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackimpactEtaofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackimpactEtaofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     recTrackimpactValidofTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("recTrackimpactValidofTSOSmaxPurity.png");
+    SaveName=FileName+"_recTrackimpactValidofTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
     deltaPtatimpactTSOSmaxPurity->Draw("");
-    OutputCanvas->SaveAs("deltaPtatimpactTSOSmaxPurity.png");
+    SaveName=FileName+"_deltaPtatimpactTSOSmaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
+    Particle2simPtHist->Draw("");
+    SaveName=FileName+"_Particle2simPt.png";OutputCanvas->SaveAs(SaveName.c_str());
+    STA2simPtHist->Draw("");
+    SaveName=FileName+"_STA2simPt.png";OutputCanvas->SaveAs(SaveName.c_str());
+    Eff2simPtHist->GetXaxis()->SetTitle("simPt /Gev");
+    Eff2simPtHist->GetXaxis()->CenterTitle(1);
+    Eff2simPtHist->GetYaxis()->SetTitle("Efficiency %");
+    Eff2simPtHist->GetYaxis()->CenterTitle(1);
+    Eff2simPtHist->Draw("");
+    SaveName=FileName+"_Eff2simPt.png";OutputCanvas->SaveAs(SaveName.c_str());
+    EfficiencyEtamaxPurity->GetXaxis()->SetTitle("Eta");
+    EfficiencyEtamaxPurity->GetXaxis()->CenterTitle(1);
+    EfficiencyEtamaxPurity->GetYaxis()->SetTitle("Efficiency %");
+    EfficiencyEtamaxPurity->GetYaxis()->CenterTitle(1);
+    EfficiencyEtamaxPurity->Draw();
+    SaveName=FileName+"_EfficiencyEtamaxPurity.png";OutputCanvas->SaveAs(SaveName.c_str());
 }
