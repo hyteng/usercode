@@ -67,12 +67,28 @@
 #define EndcapSingleSegmentOptionalCode 24 // 11000
 #endif
 
-#ifndef UpperLimitPt
-#define UpperLimitPt 80.0
+#ifndef UpperLimitMeanPt2
+#define UpperLimitMeanPt2 50.0
 #endif
 
-#ifndef LowerLimitPt
-#define LowerLimitPt 4.0
+#ifndef UpperLimitSigmaPt2
+#define UpperLimitSigmaPt2 20.0
+#endif
+
+#ifndef UpperLimitMeanPt1
+#define UpperLimitMeanPt1 20.0
+#endif
+
+#ifndef UpperLimitSigmaPt1 
+#define UpperLimitSigmaPt1 5.0
+#endif
+
+#ifndef LowerLimitMeanPt
+#define LowerLimitMeanPt 4.0
+#endif
+
+#ifndef LowerLimitSigmaPt
+#define LowerLimitSigmaPt 1.0
 #endif
 
 #endif

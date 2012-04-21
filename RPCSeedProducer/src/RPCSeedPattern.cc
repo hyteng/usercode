@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/04/14 05:53:32 $
- *  $Revision: 1.5 $
+ *  $Date: 2012/04/18 02:19:55 $
+ *  $Revision: 1.6 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -57,7 +57,9 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     CutMax = iConfig.getParameter< vector<double> >("CutMax");
     BendingPhiLowerTH = iConfig.getParameter< vector<double> >("BendingPhiLowerTH");
     BendingPhiUpperTH = iConfig.getParameter< vector<double> >("BendingPhiUpperTH");
-    //ProbingPhiLowerTH = iConfig.getParameter< vector<double> >("ProbingPhiLowerTH");
+    ProbingPhiUpperTH = iConfig.getParameter< vector<double> >("ProbingPhiUpperTH");
+    ProbingPhiLowerTH = iConfig.getParameter< vector<double> >("ProbingPhiLowerTH");
+    ExhaustivePhiTH = iConfig.getParameter< vector<double> >("ExhaustivePhiTH");
     BendingPhiFitValueUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitValueUpperLimit");
     BendingPhiFitSigmaUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitSigmaUpperLimit");
     MeanPt_Parameter0 = iConfig.getParameter< vector<double> >("MeanPt_Parameter0");
@@ -73,7 +75,7 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     else
         applyFilter = true;
 
-    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
+    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || ProbingPhiUpperTH.size() == 0 || ProbingPhiLowerTH.size() == 0 || ExhaustivePhiTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
         isConfigured = false;
 }
 
@@ -323,7 +325,7 @@ bool RPCSeedPattern::checkParameters(unsigned int theAlgorithmType) {
         AlgorithmIndex = theAlgorithmType * 2;
 
     bool isParametersSet = true;
-    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
+    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiLowerTH.size() < AlgorithmIndex || ExhaustivePhiTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
         isParametersSet = false;
 
     return isParametersSet;
@@ -440,73 +442,101 @@ void RPCSeedPattern::checkDoubleSegmentPattern() {
 
     isGoodPattern = 1;
 
-    if(BendingPhiCollection.size() < 3 || Algorithm <= 0 || Algorithm > 4)
+    if(Algorithm <= 0 || Algorithm > 4)
         isGoodPattern = -1;
-    else {
-        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax << endl;
 
-        if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
-            isGoodPattern = -1;
-        if(applyFilter == true) 
+    if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+        isGoodPattern = -1;
+
+    if(isVertexConstraint == false) {
+        if(applyFilter == true)
             if(BendingPhiCollection[0]*BendingPhiCollection[2] < 0.)
                 isGoodPattern = -1;
-        
-        // Check the Z direction
-        if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
-        for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
-            if(ZDirection == 0) {
-                if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
-                    if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
-                    isGoodPattern = -1;
+    }
+    else {
+        if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+            if(applyFilter == true) {
+                if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. || BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.) {
+                    if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. && BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.)
+                        BendingPhiMax *= -1.;
+                    else
+                        isGoodPattern = -1;
                 }
             }
-            else {
-                if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
-                    if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
-                    isGoodPattern = -1;
-                }
+            else
+                isGoodPattern = -1;
+        }
+    }
+
+    // Check the Z direction
+    if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
+    for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
+        if(ZDirection == 0) {
+            if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
+                if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
+                isGoodPattern = -1;
+            }
+        }
+        else {
+            if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
+                if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
+                isGoodPattern = -1;
             }
         }
     }
+
     isPatternChecked = true;
 }
 
 void RPCSeedPattern::checkSingleSegmentPattern() {
+
     if(isPatternChecked == true)
         return;
 
     if(debug) cout << "checkSingleSegmentPattern." << endl;
     isGoodPattern = 1;
 
-    if(BendingPhiCollection.size() < 2 || Algorithm <= 4 || Algorithm > 12)
+    if(Algorithm <= 4 || Algorithm > 12)
         isGoodPattern = -1;
-    else {
-        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
-            << endl;
 
-        if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
-            isGoodPattern = -1;
+
+    if(fabs(BendingPhiCollection[BendingPhiCollection.size()-1]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+        isGoodPattern = -1;
+
+    if(isVertexConstraint == false) {
         if(applyFilter == true)
             if(BendingPhiCollection[0]*(BendingPhiCollection[1]-BendingPhiCollection[0]) < 0.)
                 isGoodPattern = -1;
-
-        // Check the Z direction
-        if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
-        for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
-            if(ZDirection == 0) {
-                if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
-                    if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
+    }
+    else {
+        if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+            if(applyFilter == true) {
+                if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0.) {
                     isGoodPattern = -1;
                 }
             }
-            else {
-                if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
-                    if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
-                    isGoodPattern = -1;
-                }
+            else
+                isGoodPattern = -1;
+        }
+    }
+
+    // Check the Z direction
+    if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
+    for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
+        if(ZDirection == 0) {
+            if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
+                if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
+                isGoodPattern = -1;
+            }
+        }
+        else {
+            if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
+                if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
+                isGoodPattern = -1;
             }
         }
     }
+
     isPatternChecked = true;
 }
 
@@ -525,16 +555,16 @@ void RPCSeedPattern::computeSegmentPattern() {
     isGoodPattern = 1;
     //double BendingPhi = findMaxBendingPhi();
     /*
-    if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
-        BendingWise = 0;
-        Charge = 0;
-        isGoodPattern = 0;
-    }
-    else {
-        BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
-        Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
-    }
-    */
+       if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
+       BendingWise = 0;
+       Charge = 0;
+       isGoodPattern = 0;
+       }
+       else {
+       BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
+       Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
+       }
+       */
     BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
     Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
 
@@ -548,26 +578,39 @@ void RPCSeedPattern::computeSegmentPattern() {
         SigmaPt = theBendingPhi * theBendingPhi * SigmaPt_Parameter0[Algorithm-1] + theBendingPhi * SigmaPt_Parameter1[Algorithm-1] + SigmaPt_Parameter2[Algorithm-1];
         //SigmaPt *= 3.; //in STA filter it will be applied
     }
-    else {
-        if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
-            MeanPt = UpperLimitPt;
-            SigmaPt = UpperLimitPt / 2.;
-        }
-        if(fabs(BendingPhiMax) > BendingPhiUpperTH[Algorithm-1]) {
-            MeanPt = LowerLimitPt;
-            SigmaPt = LowerLimitPt / 2.;
-        }
+
+    if(fabs(BendingPhiMax) <= ProbingPhiLowerTH[Algorithm-1]) {
+        isGoodPattern = -1;
+        MeanPt = UpperLimitMeanPt2;
+        SigmaPt = UpperLimitSigmaPt2;
+        Charge = 0;
     }
+    if(fabs(BendingPhiMax) > ProbingPhiLowerTH[Algorithm-1] && fabs(BendingPhiMax) < ProbingPhiUpperTH[Algorithm-1]){
+        MeanPt = UpperLimitMeanPt2;
+        SigmaPt = UpperLimitSigmaPt2;
+    }
+    if(fabs(BendingPhiMax) >= ProbingPhiUpperTH[Algorithm-1] && fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
+        double CenterBendingPhi = BendingPhiLowerTH[Algorithm-1];
+        double CenterMeanPt = CenterBendingPhi * CenterBendingPhi * MeanPt_Parameter0[Algorithm-1] + CenterBendingPhi * MeanPt_Parameter1[Algorithm-1] + MeanPt_Parameter2[Algorithm-1];
+        double CenterSigmaPt = CenterBendingPhi * CenterBendingPhi * SigmaPt_Parameter0[Algorithm-1] + CenterBendingPhi * SigmaPt_Parameter1[Algorithm-1] + SigmaPt_Parameter2[Algorithm-1];
+        MeanPt = CenterMeanPt - (CenterBendingPhi - fabs(BendingPhiMax)) * (CenterMeanPt - UpperLimitMeanPt1) / (BendingPhiLowerTH[Algorithm-1] - ProbingPhiUpperTH[Algorithm-1]);
+        SigmaPt = CenterSigmaPt - (CenterBendingPhi - fabs(BendingPhiMax)) * (CenterSigmaPt - UpperLimitSigmaPt1) / (BendingPhiLowerTH[Algorithm-1] - ProbingPhiUpperTH[Algorithm-1]);
+    }
+    if(fabs(BendingPhiMax) > BendingPhiUpperTH[Algorithm-1]) {
+        MeanPt = LowerLimitMeanPt;
+        SigmaPt = LowerLimitSigmaPt;
+    }
+
 
     GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());
     GlobalVector InitialPt = GlobalVector(RefSegmentVector.x(), RefSegmentVector.y(), 0);
     GlobalVector InitialMomentum = InitialPt.unit() * DistanceXY + GlobalVector(0, 0, DistanceZ);
     /*
-    if(isVertexConstraint == false)
-        InitialMomentum = InitialPt.unit() * DistanceXY + GlobalVector(0, 0, DistanceZ);
-    else
-        InitialMomentum = GlobalVector(InitialPt.x()*theRefRecHit->globalPosition().perp()/(cos(BendingPhiCollection[BendingPhiCollection.size()-1])*InitialPt.perp()), InitialPt.y()*theRefRecHit->globalPosition().perp()/(cos(BendingPhiCollection[BendingPhiCollection.size()-1])*InitialPt.perp()), theRefRecHit->globalPosition().z());
-    */
+       if(isVertexConstraint == false)
+       InitialMomentum = InitialPt.unit() * DistanceXY + GlobalVector(0, 0, DistanceZ);
+       else
+       InitialMomentum = GlobalVector(InitialPt.x()*theRefRecHit->globalPosition().perp()/(cos(BendingPhiCollection[BendingPhiCollection.size()-1])*InitialPt.perp()), InitialPt.y()*theRefRecHit->globalPosition().perp()/(cos(BendingPhiCollection[BendingPhiCollection.size()-1])*InitialPt.perp()), theRefRecHit->globalPosition().z());
+       */
     Momentum = InitialMomentum.unit() * InitialMomentum.mag() * MeanPt / InitialMomentum.perp();
 
     if(debug) cout << "BendingPhiMax: " << BendingPhiMax << ", MeanPt: " << MeanPt << "SigmaPt: " << SigmaPt << ", Momentum: " << Momentum << endl;
@@ -677,35 +720,39 @@ LocalTrajectoryError RPCSeedPattern::getErrorMatrix() {
     LocalError theLocalError = theRefRecHit->localPositionError();
     double dXatRef = sqrt(theLocalError.xx());
     double dYatRef = sqrt(theLocalError.yy());
-    
+
     const GeomDetUnit* RefRPCRoll = theRefRecHit->detUnit();
     LocalPoint RecHit0 = RefRPCRoll->toLocal((RefSegment.first)->globalPosition());
     LocalPoint RecHit1 = RefRPCRoll->toLocal((RefSegment.second)->globalPosition());
     LocalPoint theLocalVertex = RefRPCRoll->toLocal(GlobalPoint(0,0,0));
     LocalVector LocalSegment0 = (LocalVector)(RecHit1 - RecHit0);
-    LocalVector LocalSegment1 = LocalVector(LocalSegment0.x()+2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
-    LocalVector LocalSegment2 = LocalVector(LocalSegment0.x()-2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
-    LocalVector LocalSegment3 = LocalVector(LocalSegment0.x(), LocalSegment0.y()+2*dYatRef, LocalSegment0.z());
-    LocalVector LocalSegment4 = LocalVector(LocalSegment0.x(), LocalSegment0.y()-2*dYatRef, LocalSegment0.z());
-    double dXdZ1 = LocalSegment1.x() / LocalSegment1.z() - LocalSegment0.x() / LocalSegment0.z();
-    double dXdZ2 = LocalSegment2.x() / LocalSegment2.z() - LocalSegment0.x() / LocalSegment0.z();
-    dXdZ = (fabs(dXdZ1) >= fabs(dXdZ2)) ? dXdZ1 : dXdZ2;
+    /*
+       LocalVector LocalSegment1 = LocalVector(LocalSegment0.x()+2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
+       LocalVector LocalSegment2 = LocalVector(LocalSegment0.x()-2*dXatRef, LocalSegment0.y(), LocalSegment0.z());
+       LocalVector LocalSegment3 = LocalVector(LocalSegment0.x(), LocalSegment0.y()+2*dYatRef, LocalSegment0.z());
+       LocalVector LocalSegment4 = LocalVector(LocalSegment0.x(), LocalSegment0.y()-2*dYatRef, LocalSegment0.z());
+       double dXdZ1 = LocalSegment1.x() / LocalSegment1.z() - LocalSegment0.x() / LocalSegment0.z();
+       double dXdZ2 = LocalSegment2.x() / LocalSegment2.z() - LocalSegment0.x() / LocalSegment0.z();
+       dXdZ = (fabs(dXdZ1) >= fabs(dXdZ2)) ? dXdZ1 : dXdZ2;
+       */
+    dXdZ = fabs(2*dXatRef/LocalSegment0.z());
     // the RPCrecHit has large bias along local Y direction(along the Strip), VertexConstraint measurement is no enough for evaluating the dYdZ error, or the kalman filter may miss some accurate DT/CSC recHits.
-    
+
     if(isVertexConstraint == false) {
-        double dYdZ1 = LocalSegment3.y() / LocalSegment3.z() - LocalSegment0.y() / LocalSegment0.z();
-        double dYdZ2 = LocalSegment4.y() / LocalSegment4.z() - LocalSegment0.y() / LocalSegment0.z();
-        dYdZ = (fabs(dYdZ1) >= fabs(dYdZ2)) ? dYdZ1 : dYdZ2;
+        //double dYdZ1 = LocalSegment3.y() / LocalSegment3.z() - LocalSegment0.y() / LocalSegment0.z();
+        //double dYdZ2 = LocalSegment4.y() / LocalSegment4.z() - LocalSegment0.y() / LocalSegment0.z();
+        //dYdZ = (fabs(dYdZ1) >= fabs(dYdZ2)) ? dYdZ1 : dYdZ2;
+        dYdZ =fabs(dYatRef/LocalSegment0.z());
     }
     else {
-        dYdZ = dYatRef / (RecHit0.z()-theLocalVertex.z());
+        dYdZ = fabs(dYatRef/(RecHit0.z()-theLocalVertex.z()));
     }
-    
+
     /*
-    double dYdZ1 = LocalSegment3.y() / LocalSegment3.z() - LocalSegment0.y() / LocalSegment0.z();
-    double dYdZ2 = LocalSegment4.y() / LocalSegment4.z() - LocalSegment0.y() / LocalSegment0.z();
-    dYdZ = (fabs(dYdZ1) >= fabs(dYdZ2)) ? dYdZ1 : dYdZ2;
-    */
+       double dYdZ1 = LocalSegment3.y() / LocalSegment3.z() - LocalSegment0.y() / LocalSegment0.z();
+       double dYdZ2 = LocalSegment4.y() / LocalSegment4.z() - LocalSegment0.y() / LocalSegment0.z();
+       dYdZ = (fabs(dYdZ1) >= fabs(dYdZ2)) ? dYdZ1 : dYdZ2;
+       */
     double SigmaP = SigmaPt * Momentum.mag() / MeanPt;
     dPInv = SigmaP / (Momentum.mag() * Momentum.mag());
 
