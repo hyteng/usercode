@@ -13,11 +13,14 @@
 #include "TStyle.h"
 #include <algorithm>
 
-#define debug 1
-#define recode 1
+#define debug 0
+#define recorde 1
+#define F2PThresold 1.5
+#define C2RThresold 5.0
 #define PI 3.1415926
 #define PhiBins 628
 #define WorkPtRange 40.0
+#define Chi2TH 1.6
 #define FitOverRangeLimit 3
 #define StatisticTH 100.0
 
@@ -38,8 +41,8 @@ class RPCBendingAnalyzer {
         ~RPCBendingAnalyzer();
         void setParameters(string FileNamePara, string DrawOptionPara, int PatternTypePara, double PtScalePara, double BendingWiseCheckPara, double SegmentBendingCutPara, double MaxBendingCutPara, bool applyFilterPara);
         void analyze(double thePhiC2R=-1.);
-        void getEventRato(double FitPtRange);
-        void fitPtofPhi(string fitType, double startPhiforMean, double endPhiforMean, double startPhiforSigma, double endPhiforSigma);
+        void getEventRato(double theFitPtRange);
+        void fitPtofPhi(string fitType, double thePhiF2P, double startPhiforMean, double endPhiforMean, double startPhiforSigma, double endPhiforSigma);
     private:
         void getBendingPhiMax();
         double getdPhi(double Phi1, double Phi0);
@@ -119,8 +122,8 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     BendingWiseCheck = BendingWiseCheckPara;
     theDrawOption = DrawOptionPara;
     
-    RatoThresoldF2P = 1.5;
-    RatoThresoldC2R = 5.;
+    RatoThresoldF2P = F2PThresold;
+    RatoThresoldC2R = C2RThresold;
 
     gStyle->SetOptTitle(0);
     gStyle->SetOptStat("");
@@ -313,7 +316,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
     recHitBendingPhiMaxHist->Clear();
     recHitBendingPhiMinHist->Clear();
 
-    int Nentries = Tree0->GetEntries();
+    int Nentries = Tree0->GetEntries()/10;
     for(int i = 0; i < Nentries; i++) {
         Tree0->GetEntry(i);
         
@@ -350,8 +353,8 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
 
             if(applyFilter == true)
                 if(fabs(recBendingPhiMax) <= PhiC2R)
-                    if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0. ) {
-                        if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. && recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0.)
+                    if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0.) {
+                        if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. && recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0.)// || (recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. && recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) > 0.))
                             recBendingPhiMax *= -1.; // correct the charge
                         else {
                             if(debug) cout << "block by Filter." << endl;
@@ -631,7 +634,11 @@ void RPCBendingAnalyzer::printHist() {
     BendingPhiCanvas->SaveAs(SaveName.c_str());
 }
 
-void RPCBendingAnalyzer::getEventRato(double FitPtRange) {
+void RPCBendingAnalyzer::getEventRato(double theFitPtRange) {
+
+    double FitPtRange = theFitPtRange;
+    if(FitPtRange < 0.)
+        FitPtRange = WorkPtRange;
 
     string RatoC2RHistName = FinalOutput + "RatoC2R"; // Event of Coverse to Reverce bendingPhi
     TH1D* RatoC2RHist = new TH1D(RatoC2RHistName.c_str(), RatoC2RHistName.c_str(), 314, 0., PI/6.);
@@ -686,11 +693,11 @@ void RPCBendingAnalyzer::getEventRato(double FitPtRange) {
         delete PtofPhiHist;
         EventNumberReverse += 0.1;
         RatoC2RHist->SetBinContent((PhiIndex-(int)(PhiBinNumber/2)), EventNumberCoverse/EventNumberReverse);
-        if(EventNumberCoverse/EventNumberReverse <= RatoThresoldC2R && PhiValue < 0.09)
+        if(EventNumberCoverse/EventNumberReverse <= RatoThresoldC2R && PhiValue <= 0.12)
             PhiC2R = PhiValue;
         EventNumberOutsideFitRegion += 0.1;
         RatoF2PHist->SetBinContent((PhiIndex-(int)(PhiBinNumber/2)), EventNumberInsideFitRegion/EventNumberOutsideFitRegion);
-        if(EventNumberInsideFitRegion/EventNumberOutsideFitRegion <=RatoThresoldF2P && PhiValue < 0.09)
+        if(EventNumberInsideFitRegion/EventNumberOutsideFitRegion <= RatoThresoldF2P && PhiValue <= 0.12)
             PhiF2P = PhiValue;
 
         if(debug) cout << "PhiC2R: " << PhiC2R << ", PhiF2P: " << PhiF2P << endl;
@@ -723,7 +730,7 @@ void RPCBendingAnalyzer::getEventRato(double FitPtRange) {
     delete RatoF2PHist;
 }
 
-void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, double endPhiforMean, double startPhiforSigma, double endPhiforSigma) {
+void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double startPhiforMean, double endPhiforMean, double startPhiforSigma, double endPhiforSigma) {
 
     string SaveName;
     string FitHistName = FinalOutput + FitFix + "recHitBendingPhiMax_";
@@ -747,12 +754,16 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
 
     double BendingPhiUpperLimit = PI/6.;
     bool PhiUpperLimitSet = false;
-    double BendingPhiLowerLimit = MaxBendingCut;
+    double BendingPhiLowerLimit = PhiF2P;
+    bool PhiLowerLimitSet = false;
     int outFit = 0;
-    for(int index = PhiBinNumber/2+1; index <= PhiBinNumber; index++) {
-        double PhiValue = (double)(index) * PhiBinWidth + PhiLowEdge + PhiBinWidth * 0.5;
+    if(thePhiF2P > 0.)
+        BendingPhiLowerLimit = thePhiF2P;
 
-        if(PhiValue <= 0.)
+    for(int index = (int)(PhiBinNumber/2)+1; index <= PhiBinNumber; index++) {
+        double PhiValue = (double)(index) * PhiBinWidth + PhiLowEdge - PhiBinWidth * 0.5;
+
+        if(PhiValue < BendingPhiLowerLimit)
             continue;
 
         std::stringstream TempIndex;
@@ -763,22 +774,19 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
         string PtofPhiHistName = "PtofPhiHist_Test_" + PhiIndex;
         TH1D* PtofPhiHist = recHitBendingPhiMaxHist->ProjectionX(PtofPhiHistName.c_str(), index, index, "o");
         double TotalEvent = 0.;
-        int startPtBin = PtBinNumber/2;
-        int endPtBin = PtBinNumber;
         double StartPtValue = 0.;
         double EndPtValue = WorkPtRange;
-        for(int PtIndex = startPtBin; PtIndex <= endPtBin; PtIndex++) {
+        for(int PtIndex = (int)(PtBinNumber/2)+1; PtIndex <= PtBinNumber; PtIndex++) {
 
-            double PtValue = (double)(PtIndex) * PtBinWidth + PtLowEdge + PtBinWidth * 0.5;
+            double PtValue = (double)(PtIndex) * PtBinWidth + PtLowEdge - PtBinWidth * 0.5;
             double TempValue = PtofPhiHist->GetBinContent(PtIndex);
             TotalEvent += TempValue;
-            //if(debug) cout << "PtIndex: " << PtIndex << ", PtValue: " << PtValue << ", TempValue: " << TempValue << endl;
+            if(debug) cout << "PtIndex: " << PtIndex << ", PtValue: " << PtValue << ", TempValue: " << TempValue << endl;
         }
+
         // for this phi bin i we don't find event, so skip this one
-        if(TotalEvent <= (double)StatisticTH) {
-            outFit++;
+        if(TotalEvent <= (double)StatisticTH)
             continue;
-        }
 
         string FitName = "PtofPhi_Fit_" + fitType;
         TF1* Fit0 = new TF1(FitName.c_str(), fitType.c_str(), StartPtValue, EndPtValue);
@@ -810,23 +818,21 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
         bool NewLargeStatistic = false;
         double EventNumberInsideRegion = 0.;
         double EventNumberOutsideRegion = 0.;
+
         for(int PtIndex = 1; PtIndex <= NewPtBinNumber; PtIndex++) {
 
-            double PtValue = (double)(PtIndex) * NewPtBinWidth + NewPtLowEdge + NewPtBinWidth * 0.5;
+            double PtValue = (double)(PtIndex) * NewPtBinWidth + NewPtLowEdge - NewPtBinWidth * 0.5;
             double TempValue = FinalPtofPhiHist->GetBinContent(PtIndex);
 
-            if(PtValue > EndPtValue || PtValue <= StartPtValue)
+            if(PtValue > WorkPtRange || PtValue < StartPtValue)
                 EventNumberOutsideRegion += TempValue;
             else
                 EventNumberInsideRegion += TempValue;
-            /*
-               if(TempValue >= StatisticTH)
-               NewLargeStatistic = true;
-               */
+            
             if(debug) cout << "PtIndex: " << PtIndex << ", PtValue: " << PtValue << ", TempValue: " << TempValue << endl;
         }
         if(EventNumberOutsideRegion == 0.)
-            EventNumberOutsideRegion += 1;
+            EventNumberOutsideRegion += 0.1;
         double Rato = EventNumberInsideRegion/EventNumberOutsideRegion;
         if(debug) cout << "NewLargeStatistic: " << NewLargeStatistic << ", EventNumberInsideRegion: " << EventNumberInsideRegion << ", EventNumberOutsideRegion: " << EventNumberOutsideRegion << ", Rato: " << Rato << endl;
         std::stringstream RegionStatisticRatoTemp;
@@ -838,7 +844,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
            EndPtValue /= 2.;
            Fit0->SetRange(StartPtValue, EndPtValue);
            }
-           */
+        */
         double theFinalHistMaxValue = FinalPtofPhiHist->GetBinContent(FinalPtofPhiHist->GetMaximumBin());
         double theFinalHistMaxBinCenter = FinalPtofPhiHist->GetBinCenter(FinalPtofPhiHist->GetMaximumBin());
         Fit0->SetParameter(0, theFinalHistMaxValue);
@@ -848,12 +854,13 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
         double FinalChiSquare = Fit0->GetChisquare();
         double FinalMean = Fit0->GetParameter(1);
         double FinalSigma = Fit0->GetParameter(2);
+        double FinalReducedChi2 = Fit0->GetChisquare() / Fit0->GetNDF();
         if(debug) cout << "FinalChiSquare: " << FinalChiSquare << ", FinalMean: " << FinalMean << ", FinalSigma:" << FinalSigma << endl;
         // when fitting fail Mean will over PtScale range, while Sigma keep in same level. we confirm this from Fit plots
         bool isFinalCorrected = false;
-        if(FinalMean < 0. || FinalMean > PtScale) { 
+        if(FinalMean < 0. || FinalMean > WorkPtRange || FinalReducedChi2 > Chi2TH) { 
             FinalMean = theFinalHistMaxBinCenter;
-            FinalSigma = FinalMean / 10.;
+            FinalSigma = FinalMean / 5.;
             isFinalCorrected = true;
             if(debug) cout << "Correct Final: " << FinalMean << ", " << FinalSigma << endl;
         }
@@ -884,24 +891,27 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
         double SigmaPt = FinalSigma;
         if(debug) cout << "index: " << index << ", PhiValue: " << PhiValue << ", MeanPt: " << MeanPt << ", SigmaPt: " << SigmaPt << endl;
         int thePhiIndex = Phi2MeanPtHist->FindBin(PhiValue);
-        if(PhiValue <= 0.1 || (Rato >= 1. && FinalMean > 0. && FinalMean < PtScale)) {
+        if(Rato >= 1.5 && isFinalCorrected == false) {
             outFit = 0;
             Phi2MeanPtHist->SetBinContent(thePhiIndex, MeanPt);
             Phi2RMSPtHist->SetBinContent(thePhiIndex, SigmaPt);
-            if(Rato >= 1. && FinalMean > 0. && FinalMean < PtScale && PhiValue <= BendingPhiLowerLimit && isFinalCorrected == false)
+            if(PhiValue < 0.1 && PhiLowerLimitSet == false) {
                 BendingPhiLowerLimit = PhiValue;
-            if(PhiValue > 0.1 && PhiUpperLimitSet == false && isFinalCorrected == false)
+                PhiLowerLimitSet = true;
+            }
+            if(PhiValue > 0.1 && PhiUpperLimitSet == false)
                 BendingPhiUpperLimit = PhiValue;
         }
         else {
-            if(Rato < 1.)
-                outFit++;
-            if(PhiUpperLimitSet == false && outFit > FitOverRangeLimit)
+            outFit++;
+            if(PhiValue < 0.1 && outFit >= FitOverRangeLimit)
+                PhiLowerLimitSet = false;
+            if(PhiUpperLimitSet == false && outFit >= FitOverRangeLimit)
                 PhiUpperLimitSet = true;
         }
         Phi2StatisticRatoHist->SetBinContent(thePhiIndex, Rato);
     }
-    if(debug) std::cout << "BendingPhiLowerLimit: " << BendingPhiLowerLimit << ", BendingPhiUpperLimit: " << BendingPhiUpperLimit << endl;
+    if(recorde) std::cout << "BendingPhiLowerLimit: " << BendingPhiLowerLimit << ", BendingPhiUpperLimit: " << BendingPhiUpperLimit << endl;
 
     if(startPhiforMean <= 0.)
         startPhiforMean = BendingPhiLowerLimit;
@@ -911,7 +921,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
         startPhiforSigma = BendingPhiLowerLimit;
     if(endPhiforSigma <= 0.)
         endPhiforSigma = BendingPhiUpperLimit;
-    if(debug) std::cout << "startPhiforMean: " << startPhiforMean << ", endPhiforMean: " << endPhiforMean << ", startPhiforSigma: " << startPhiforSigma << ", endPhiforSigma: " << endPhiforSigma << endl;
+    if(recorde) std::cout << "startPhiforMean: " << startPhiforMean << ", endPhiforMean: " << endPhiforMean << ", startPhiforSigma: " << startPhiforSigma << ", endPhiforSigma: " << endPhiforSigma << endl;
 
     gStyle->SetOptFit(0111);
     double para[3];
@@ -919,13 +929,13 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double startPhiforMean, doub
     //PtValueFunction->SetParameters(a, b, c);
     Phi2MeanPtHist->Fit(PtValueFunction, "R");
     PtValueFunction->GetParameters(para);
-    if(debug) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
+    if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
 
     TF1 *PtErrorFunction = new TF1("fitPtError", "[0]*x*x+[1]*x+[2]", startPhiforSigma, endPhiforSigma);
     //PtErrorFunction->SetParameters(a, b, c);
     Phi2RMSPtHist->Fit(PtErrorFunction, "R");
     PtErrorFunction->GetParameters(para);
-    if(debug) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
+    if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
 
 
     TCanvas* Phi2MeanPtCanvas = new TCanvas("Phi2MeanPt", "Phi2MeanPt", 800, 600);
