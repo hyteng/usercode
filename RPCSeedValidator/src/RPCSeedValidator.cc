@@ -142,12 +142,14 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         int SimTrackType;
         double SimTrackMomentum;
         double SimTrackDirectionPhi;
+        double SimTrackDirectionEta;
         int SimTrackCharge;
         int SimTrackValid;
         bool PassSegmentFilter;
         DetId RefDet;
         double SimMomentumatRef;
         double SimDirectionPhiatRef;
+        double SimDirectionEtaatRef;
         double SimBendingEntryPositionX;
         double SimBendingEntryPositionY;
         double SimBendingEntryPositionZ;
@@ -161,6 +163,7 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         double SeedQuality;
         double RecMomentumatRef;
         double RecDirectionPhiatRef;
+        double RecDirectionEtaatRef;
         double RecBendingEntryPositionX;
         double RecBendingEntryPositionY;
         double RecBendingEntryPositionZ;
@@ -212,11 +215,13 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     ExTree->Branch("SimTrackType", &SimTrackType,  "SimTrackType/I");
     ExTree->Branch("SimTrackMomentum", &SimTrackMomentum, "SimTrackMomentum/D");
     ExTree->Branch("SimTrackDirectionPhi", &SimTrackDirectionPhi, "SimTrackDirectionPhi/D");
+    ExTree->Branch("SimTrackDirectionEta", &SimTrackDirectionEta, "SimTrackDirectionEta/D");
     ExTree->Branch("SimTrackCharge", &SimTrackCharge, "SimTrackCharge/I");
     ExTree->Branch("SimTrackValid", &SimTrackValid, "SimTrackValid/I");
     ExTree->Branch("PassSegmentFilter", &PassSegmentFilter, "PassSegmentFilter/O");
     ExTree->Branch("SimMomentumatRef", &SimMomentumatRef, "SimMomentumatRef/D");
     ExTree->Branch("SimDirectionPhiatRef", &SimDirectionPhiatRef, "SimDirectionPhiatRef/D");
+    ExTree->Branch("SimDirectionEtaatRef", &SimDirectionEtaatRef, "SimDirectionEtaatRef/D");
     ExTree->Branch("SimBendingEntryPositionX", &SimBendingEntryPositionX, "SimBendingEntryPositionX/D");
     ExTree->Branch("SimBendingEntryPositionY", &SimBendingEntryPositionY, "SimBendingEntryPositionY/D");
     ExTree->Branch("SimBendingEntryPositionZ", &SimBendingEntryPositionZ, "SimBendingEntryPositionZ/D");
@@ -230,6 +235,7 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     ExTree->Branch("SeedQuality", &SeedQuality, "SeedQuality/D");
     ExTree->Branch("RecMomentumatRef", &RecMomentumatRef ,"RecMomentumatRef/D");
     ExTree->Branch("RecDirectionPhiatRef", &RecDirectionPhiatRef ,"RecDirectionPhiatRef/D");
+    ExTree->Branch("RecDirectionEtaatRef", &RecDirectionEtaatRef ,"RecDirectionEtaatRef/D");
     ExTree->Branch("RecBendingEntryPositionX", &RecBendingEntryPositionX, "RecBendingEntryPositionX/D");
     ExTree->Branch("RecBendingEntryPositionY", &RecBendingEntryPositionY, "RecBendingEntryPositionY/D");
     ExTree->Branch("RecBendingEntryPositionZ", &RecBendingEntryPositionZ, "RecBendingEntryPositionZ/D");
@@ -307,7 +313,8 @@ void RPCSeedValidator::getTrackInfo(const SimTrack& theSimTrack) {
     SimTrackCharge = theSimTrack.charge();
     SimTrackMomentum = theSimTrack.momentum().pt();
     SimTrackDirectionPhi = theSimTrack.momentum().phi();
-    if(debug) cout << "SimTrack momentum: " << SimTrackMomentum << endl;
+    SimTrackDirectionEta = theSimTrack.momentum().eta();
+    if(debug) cout << "SimTrack momentum: " << SimTrackMomentum << ", SimTrackDirectionPhi: " << SimTrackDirectionPhi << ", SimTrackDirectionEta: " << SimTrackDirectionEta << endl;
 
     for(PSimHitContainer::const_iterator pSimHit = pSimHits->begin(); pSimHit != pSimHits->end(); pSimHit++) {
         int TrackId1 = pSimHit->trackId();
@@ -436,6 +443,7 @@ void RPCSeedValidator::findSeedforTrack() {
     // Set the default value for no seed case and always fill it for each SimTrack
     SimMomentumatRef = -1;
     SimDirectionPhiatRef = 0;
+    SimDirectionEtaatRef = 0;
     SimBendingEntryPositionX = 0;
     SimBendingEntryPositionY = 0;
     SimBendingEntryPositionZ = 0;
@@ -449,6 +457,7 @@ void RPCSeedValidator::findSeedforTrack() {
     SeedQuality = 0;
     RecMomentumatRef = -1;
     RecDirectionPhiatRef = 0;
+    RecDirectionEtaatRef = 0;
     RecBendingEntryPositionX = 0;
     RecBendingEntryPositionY = 0;
     RecBendingEntryPositionZ = 0;
@@ -504,6 +513,7 @@ void RPCSeedValidator::findSeedforTrack() {
                 GlobalVector GP = theRPCGeometry->idToDetUnit(RefDet)->toGlobal(SeedMomentum);
                 RecMomentumatRef = GP.perp();
                 RecDirectionPhiatRef = GP.phi().value();
+                RecDirectionEtaatRef = GP.eta();
                 
                 if(SeedPurity == 1.)
                     compareSeedBending();
@@ -640,13 +650,22 @@ bool RPCSeedValidator::SegmentFilter(int theFilterType) {
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
     }
     if((FilterType == 2 || FilterType == 0) && isVertexConstraint == true) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,2));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
         BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
+        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
     }
     if((FilterType == 2 || FilterType == 0) && isVertexConstraint == false) {
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,2));
+        BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
+        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
     }
 
     MaxBendingPhiCollection.clear();
@@ -798,9 +817,10 @@ void RPCSeedValidator::getSimPtatRef() {
             GlobalPoint SimLeavePosition = theRPCRoll->toGlobal(pSimHit->exitPoint());
             SimMomentumatRef = GlobalMomentum.perp();
             SimDirectionPhiatRef = GlobalMomentum.phi();
+            SimDirectionEtaatRef = GlobalMomentum.eta();
             if(debug) cout << "@ ref SimHit's entry Position is: " << SimEntryPosition.x() << ", " << SimEntryPosition.y() << ", " << SimEntryPosition.z() << endl;
             if(debug) cout << "@ ref SimHit's leave Position is: " << SimLeavePosition.x() << ", " << SimLeavePosition.y() << ", " << SimLeavePosition.z() << endl;
-            if(debug) cout << "@ ref SimHit's Pt and direction is: " << SimMomentumatRef << ", " << SimDirectionPhiatRef << endl;
+            if(debug) cout << "@ ref SimHit's Pt and direction is: " << SimMomentumatRef << ", " << SimDirectionPhiatRef << ", " << SimDirectionEtaatRef << endl;
             if(debug) cout << "@ ref RecHit's Pt and direction is: " << RecMomentumatRef << ", " << RecDirectionPhiatRef << endl;
             isset = true;
         }
