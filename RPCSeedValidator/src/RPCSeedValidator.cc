@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Thu Nov 20 01:40:00 CET 2008
-// $Id$
+// $Id: RPCSeedValidator.cc,v 1.3 2012/05/11 02:58:50 hyteng Exp $
 //
 //
 
@@ -816,7 +816,7 @@ void RPCSeedValidator::getSimPtatRef() {
             GlobalPoint SimEntryPosition = theRPCRoll->toGlobal(pSimHit->entryPoint());
             GlobalPoint SimLeavePosition = theRPCRoll->toGlobal(pSimHit->exitPoint());
             SimMomentumatRef = GlobalMomentum.perp();
-            SimDirectionPhiatRef = GlobalMomentum.phi();
+            SimDirectionPhiatRef = GlobalMomentum.phi().value();
             SimDirectionEtaatRef = GlobalMomentum.eta();
             if(debug) cout << "@ ref SimHit's entry Position is: " << SimEntryPosition.x() << ", " << SimEntryPosition.y() << ", " << SimEntryPosition.z() << endl;
             if(debug) cout << "@ ref SimHit's leave Position is: " << SimLeavePosition.x() << ", " << SimLeavePosition.y() << ", " << SimLeavePosition.z() << endl;
