@@ -8,7 +8,7 @@
 #include "TGaxis.h"
 #include "TMath.h"
 
-#define debug 0
+#define debug 1
 
 #ifndef PI
 #define PI 3.1415926535
