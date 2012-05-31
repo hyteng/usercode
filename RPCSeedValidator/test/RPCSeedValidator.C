@@ -15,11 +15,13 @@
 
 void RPCSeedValidator(string FileName) {
 
+    gStyle->SetOptStat("");
+    gStyle->SetOptTitle(0);
     if(debug) cout << FileName << endl;
-    string theFileName = FileName;
+    string theFileName = "../" + FileName;
     TFile* RootFile = TFile::Open(theFileName.c_str());
-    string OutputPlotNameFix = ".png";
-    string FinalOutput = "Filter_" + FileName + "_";
+    string OutputPlotNameFix = ".eps";
+    string FinalOutput = FileName + "_";
 
     unsigned int EventNumber;
     int SimTrackId;
@@ -27,10 +29,11 @@ void RPCSeedValidator(string FileName) {
     double SimTrackMomentum;
     double SimTrackDirectionPhi;
     int SimTrackCharge;
-    int SimTrackValid;
+    int SimTrackvalid;
     bool PassSegmentFilter;
     double SimMomentumatRef;
     double SimDirectionPhiatRef;
+    double SimDirectionEtaatRef;
     double SimBendingPhi;
     double SimBendingEntryPositionX;
     double SimBendingEntryPositionY;
@@ -44,6 +47,7 @@ void RPCSeedValidator(string FileName) {
     double SeedQuality;
     double RecMomentumatRef;
     double RecDirectionPhiatRef;
+    double RecDirectionEtaatRef;
     double RecBendingPhi;
     double RecBendingEntryPositionX;
     double RecBendingEntryPositionY;
@@ -60,7 +64,7 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("SimTrackMomentum", &SimTrackMomentum);
     T0->SetBranchAddress("SimTrackDirectionPhi", &SimTrackDirectionPhi);
     T0->SetBranchAddress("SimTrackCharge", &SimTrackCharge);
-    T0->SetBranchAddress("SimTrackValid", &SimTrackValid);
+    T0->SetBranchAddress("SimTrackValid", &SimTrackvalid);
     T0->SetBranchAddress("PassSegmentFilter", &PassSegmentFilter);
     T0->SetBranchAddress("SimMomentumatRef", &SimMomentumatRef);
     T0->SetBranchAddress("SimDirectionPhiatRef", &SimDirectionPhiatRef);
@@ -86,136 +90,196 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("RecBendingLeavePositionZ", &RecBendingLeavePositionZ);
     T0->SetBranchAddress("RecBendingLastPhi", &RecBendingLastPhi);
 
-    TH1D* SimTrackValidHist = (TH1D*) new TH1D("SimTrackValidHist", "SimTrackValidHist", 2, 0, 2);
-    TH1D* SeedPtforSimTrackValidHist = (TH1D*) new TH1D("SeedPtforSimTrackValidHist", "SeedPtforSimTrackValidHist", 1000, 0, 100);
-    TH1D* SeeddeltaPtforSimTrackValidHist = (TH1D*) new TH1D("SeeddeltaPtforSimTrackValidHist", "SeeddeltaPtforSimTrackValidHist", 400, -20, 20);
-    TH1D* SeedPurityforSimTrackValidHist = (TH1D*) new TH1D("SeedPurityforSimTrackValidHist", "SeedPurityforSimTrackValidHist", 20, 0, 2);
-    TH1D* ChargeCheckforSimTrackValidHist = (TH1D*) new TH1D("ChargeCheckforSimTrackValidHist", "ChargeCheckforSimTrackValidHist", 5, -2.5, 2.5);
-    TH1D* SeedNumberforSimTrackValidHist = (TH1D*) new TH1D("SeedNumberforSimTrackValidHist", "SeedNumberforSimTrackValidHist", 30, 0, 30);
-    TH1D* SeedEfficiencyforSimTrackValidHist = (TH1D*) new TH1D("SeedEfficiencyforSimTrackValidHist", "SeedEfficiencyforSimTrackValidHist", 2, 0, 2);
-    TH1D* SeedNumberforSimTrackinValidHist = (TH1D*) new TH1D("SeedNumberforSimTrackinValidHist", "SeedNumberforSimTrackinValidHist", 20, 0, 20);
-    TH1D* SeedEfficiencyforSimTrackinValidHist = (TH1D*) new TH1D("SeedEfficiencyforSimTrackinValidHist", "SeedEfficiencyforSimTrackinValidHist", 2, 0, 2);
+    TH1D* SimTrackvalidHist = (TH1D*) new TH1D("SimTrackvalidHist", "SimTrackvalidHist", 2, 0, 2);
+    TH1D* SeedPtforSimTrackvalidHist = (TH1D*) new TH1D("SeedPtforSimTrackvalidHist", "SeedPtforSimTrackvalidHist", 100, 0, 100);
+    TH1D* SeeddeltaPtforSimTrackvalidHist = (TH1D*) new TH1D("SeeddeltaPtforSimTrackvalidHist", "SeeddeltaPtforSimTrackvalidHist", 150, -3., 3.);
+    TH1D* SeeddeltaPhiforSimTrackvalidHist = (TH1D*) new TH1D("SeeddeltaPhiforSimTrackvalidHist", "SeeddeltaPhiforSimTrackvalidHist", 628, -3.14/6, 3.14/6);
+    TH1D* SeeddeltaEtaforSimTrackvalidHist = (TH1D*) new TH1D("SeeddeltaEtaforSimTrackvalidHist", "SeeddeltaEtaforSimTrackvalidHist", 200, -1., 1.);
+    TH1D* SeedPurityforSimTrackvalidHist = (TH1D*) new TH1D("SeedPurityforSimTrackvalidHist", "SeedPurityforSimTrackvalidHist", 20, 0, 2);
+    TH1D* ChargeCheckforSimTrackvalidHist = (TH1D*) new TH1D("ChargeCheckforSimTrackvalidHist", "ChargeCheckforSimTrackvalidHist", 5, -2.5, 2.5);
+    TH1D* SeedNumberforSimTrackvalidHist = (TH1D*) new TH1D("SeedNumberforSimTrackvalidHist", "SeedNumberforSimTrackvalidHist", 30, 0, 30);
+    TH1D* SeedEfficiencyforSimTrackvalidHist = (TH1D*) new TH1D("SeedEfficiencyforSimTrackvalidHist", "SeedEfficiencyforSimTrackvalidHist", 2, 0, 2);
+    TH1D* SeedNumberforSimTrackinvalidHist = (TH1D*) new TH1D("SeedNumberforSimTrackinvalidHist", "SeedNumberforSimTrackinvalidHist", 20, 0, 20);
+    TH1D* SeedEfficiencyforSimTrackinvalidHist = (TH1D*) new TH1D("SeedEfficiencyforSimTrackinvalidHist", "SeedEfficiencyforSimTrackinvalidHist", 2, 0, 2);
     TH1D* RecBendingLastPhiHist = (TH1D*) new TH1D("RecBendingLastPhiHist", "RecBendingLastPhiHist", 628, -3.14/2, 3.14/2);
-
+    TH1D* SeedEfficiencyHist = (TH1D*) new TH1D("SeedEfficiency", "SeedEfficiency", 2, 0, 2);
     TH2D* RecBendingPhi2PtHist = new TH2D("RecBendingPhi2PtHist", "RecBendingPhi2PtHist", 2000, -100, 100, 628, -3.14/4, 3.14/4);
     TH2D* PtRatoofRecBendingPhiHist = new TH2D("", "", 628, -3.14/4, 3.14/4, 2000, -100, 100);
     TObjArray* SimReverseBending = (TObjArray*) new TObjArray();
 
-    unsigned int lastSeedNumber = -1;
-    unsigned int lastSimTrackValid = 0;
-    bool lastPassSegmentFilter = false;
+    unsigned int LastSeedNumber = -1;
+    unsigned int LastSimTrackvalid = 0;
+    bool LastPassSegmentFilter = false;
+    bool LastPurityFull = false;
     int Nentries = T0->GetEntries();
     for(int i = 0; i < Nentries; i++) {
         T0->GetEntry(i);
 
-        if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", PassSegmentFilter: " << PassSegmentFilter << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecBendingLastPhi: " << RecBendingLastPhi << ", RecMomentumatRef: " << RecMomentumatRef << ", SimMomentumatRef: " << SimMomentumatRef << ", lastSeedNumber: " << lastSeedNumber << endl;
+        if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", PassSegmentFilter: " << PassSegmentFilter << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecBendingLastPhi: " << RecBendingLastPhi << ", RecMomentumatRef: " << RecMomentumatRef << ", SimMomentumatRef: " << SimMomentumatRef << ", LastSeedNumber: " << LastSeedNumber << endl;
+
+        //if(SimTrackMomentum > 20.0)
+            //continue;
 
         if(SeedNumber != 0) {
-            if(SimTrackValid == 1 && PassSegmentFilter == true) {
-                //SeedPtforSimTrackValidHist->Fill(RecMomentumatRef);
-                //SeeddeltaPtforSimTrackValidHist->Fill(RecMomentumatRef-SimMomentumatRef);
-                SeedPurityforSimTrackValidHist->Fill(SeedPurity);
-                //ChargeCheckforSimTrackValidHist->Fill(SeedCharge*SimTrackCharge);
-                //RecBendingLastPhiHist->Fill(RecBendingLastPhi*(double)SimTrackCharge);
+            if(SimTrackvalid == 1 && SeedPurity == 1. && PassSegmentFilter == true) {
+                SeedPtforSimTrackvalidHist->Fill(RecMomentumatRef);
+                SeeddeltaPtforSimTrackvalidHist->Fill((RecMomentumatRef-SimMomentumatRef)/SimMomentumatRef);
+                SeeddeltaPhiforSimTrackvalidHist->Fill(RecDirectionPhiatRef-SimDirectionPhiatRef);
+                SeeddeltaEtaforSimTrackvalidHist->Fill(RecDirectionEtaatRef-SimDirectionEtaatRef);
+                RecBendingPhi2PtHist->Fill(SimMomentumatRef*SimTrackCharge, RecBendingPhi);
+                double PtRato = SimMomentumatRef / RecMomentumatRef;
+                if(debug) cout << "PtRato: " << PtRato << ", at RecBendingPhi: " << RecBendingPhi << endl;
+                PtRatoofRecBendingPhiHist->Fill(RecBendingPhi, PtRato);
+                RecBendingLastPhiHist->Fill((RecBendingLastPhi == 0. ? 0 : RecBendingLastPhi/fabs(RecBendingLastPhi))*SimTrackCharge);
+                SeedPurityforSimTrackvalidHist->Fill(SeedPurity);
+                ChargeCheckforSimTrackvalidHist->Fill(SeedCharge*SimTrackCharge);
+                /*
                 if(SeedPurity == 1) {
-                    ChargeCheckforSimTrackValidHist->Fill(SeedCharge*SimTrackCharge);
-                    SeedPtforSimTrackValidHist->Fill(RecMomentumatRef);
-                    SeeddeltaPtforSimTrackValidHist->Fill(RecMomentumatRef-SimMomentumatRef);
+                    //SeedPtforSimTrackvalidHist->Fill(RecMomentumatRef);
+                    //SeeddeltaPtforSimTrackvalidHist->Fill(RecMomentumatRef-SimMomentumatRef);
                     RecBendingPhi2PtHist->Fill(SimMomentumatRef*SimTrackCharge, RecBendingPhi);
                     double PtRato = SimMomentumatRef / RecMomentumatRef;
                     if(debug) cout << "PtRato: " << PtRato << ", at RecBendingPhi: " << RecBendingPhi << endl;
                     PtRatoofRecBendingPhiHist->Fill(RecBendingPhi, PtRato);
                     RecBendingLastPhiHist->Fill((RecBendingLastPhi == 0. ? 0 : RecBendingLastPhi/fabs(RecBendingLastPhi))*SimTrackCharge);
                 }
+                */
                 if(SeedCharge*SimTrackCharge == -1) {
                     if(debug) cout << "R1: " << sqrt(SimBendingEntryPositionX*SimBendingEntryPositionX+SimBendingEntryPositionY*SimBendingEntryPositionY) << ", R2: " << sqrt(SimBendingLeavePositionX*SimBendingLeavePositionX+SimBendingLeavePositionY*SimBendingLeavePositionY) << endl;
                     TLine* SimSegment = new TLine(SimBendingEntryPositionX, SimBendingEntryPositionY, SimBendingLeavePositionX, SimBendingLeavePositionY);
                     SimReverseBending->AddLast(SimSegment);
-                    //RecBendingLastPhiHist->Fill(RecBendingLastPhi*SimTrackCharge);
                 }
+                LastPurityFull = true;
             }
         }
         else {
-            if(lastSeedNumber != -1) {
-                if(lastSimTrackValid == 1 && lastPassSegmentFilter == true) {
-                    if(debug) cout << "Filling Valid track efficiency " << lastSeedNumber << endl;
-                    SeedNumberforSimTrackValidHist->Fill(lastSeedNumber);
-                    SeedEfficiencyforSimTrackValidHist->Fill(lastSeedNumber>0?1:0);
+            if(LastSeedNumber != -1) {
+                if(LastSimTrackvalid == 1 && LastPassSegmentFilter == true) {
+                    if(debug) cout << "Filling valid track efficiency " << LastSeedNumber << endl;
+                    SeedNumberforSimTrackvalidHist->Fill(LastSeedNumber);
+                    SeedEfficiencyforSimTrackvalidHist->Fill(LastPurityFull==true?1:0);
                 }
                 else {
-                    SeedNumberforSimTrackinValidHist->Fill(lastSeedNumber);
-                    SeedEfficiencyforSimTrackinValidHist->Fill(lastSeedNumber>0?1:0);
+                    SeedNumberforSimTrackinvalidHist->Fill(LastSeedNumber);
+                    SeedEfficiencyforSimTrackinvalidHist->Fill(LastPurityFull==true?1:0);
                 }
+                LastPurityFull = false;
             }
         }
-        lastPassSegmentFilter = PassSegmentFilter;
-        lastSeedNumber = SeedNumber;
-        lastSimTrackValid = SimTrackValid;
+        LastPassSegmentFilter = PassSegmentFilter;
+        LastSeedNumber = SeedNumber;
+        LastSimTrackvalid = SimTrackvalid;
     }
-    if(lastSeedNumber != -1) {
-        if(lastSimTrackValid == 1 && lastPassSegmentFilter == true) {
-            SeedNumberforSimTrackValidHist->Fill(lastSeedNumber);
-            SeedEfficiencyforSimTrackValidHist->Fill(lastSeedNumber>0?1:0);
+    if(LastSeedNumber != -1) {
+        if(LastSimTrackvalid == 1 && LastPassSegmentFilter == true) {
+            SeedNumberforSimTrackvalidHist->Fill(LastSeedNumber);
+            SeedEfficiencyforSimTrackvalidHist->Fill(LastPurityFull==true?1:0);
         }
         else {
-            SeedNumberforSimTrackinValidHist->Fill(lastSeedNumber);
-            SeedEfficiencyforSimTrackinValidHist->Fill(lastSeedNumber>0?1:0);
+            SeedNumberforSimTrackinvalidHist->Fill(LastSeedNumber);
+            SeedEfficiencyforSimTrackinvalidHist->Fill(LastPurityFull == true?1:0);
         }
     }
 
-    TCanvas* SimTrackValidCanvas = new TCanvas("SimTrackValidCanvas", "SimTrackValidCanvas", 800, 600);
-    SimTrackValidCanvas->cd();
-    SimTrackValidHist->Draw();
-    string SimTrackValidCanvasName = FinalOutput + "SimTrackValid" + OutputPlotNameFix;
-    SimTrackValidCanvas->SaveAs(SimTrackValidCanvasName.c_str());
+    TCanvas* SimTrackvalidCanvas = new TCanvas("SimTrackvalidCanvas", "SimTrackvalidCanvas", 800, 600);
+    SimTrackvalidCanvas->cd();
+    SimTrackvalidHist->Draw();
+    string SimTrackvalidCanvasName = FinalOutput + "SimTrackvalid" + OutputPlotNameFix;
+    SimTrackvalidCanvas->SaveAs(SimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeedPtforSimTrackValidCanvas = new TCanvas("SeedPtforSimTrackValidCanvas", "SeedPtforSimTrackValidCanvas", 800, 600);
-    SeedPtforSimTrackValidCanvas->cd();
-    SeedPtforSimTrackValidHist->Draw();
-    string SeedPtforSimTrackValidCanvasName = FinalOutput + "SeedPtforSimTrackValid" + OutputPlotNameFix;
-    SeedPtforSimTrackValidCanvas->SaveAs(SeedPtforSimTrackValidCanvasName.c_str());
+    TCanvas* SeedPtforSimTrackvalidCanvas = new TCanvas("SeedPtforSimTrackvalidCanvas", "SeedPtforSimTrackvalidCanvas", 800, 600);
+    SeedPtforSimTrackvalidCanvas->cd();
+    SeedPtforSimTrackvalidHist->Draw();
+    string SeedPtforSimTrackvalidCanvasName = FinalOutput + "SeedPtforSimTrackvalid" + OutputPlotNameFix;
+    SeedPtforSimTrackvalidCanvas->SaveAs(SeedPtforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeeddeltaPtforSimTrackValidCanvas = new TCanvas("SeeddeltaPtforSimTrackValidCanvas", "SeeddeltaPtforSimTrackValidCanvas", 800, 600);
-    SeeddeltaPtforSimTrackValidCanvas->cd();
-    SeeddeltaPtforSimTrackValidHist->Draw();
-    string SeeddeltaPtforSimTrackValidCanvasName = FinalOutput + "SeeddeltaPtforSimTrackValid" + OutputPlotNameFix;
-    SeeddeltaPtforSimTrackValidCanvas->SaveAs(SeeddeltaPtforSimTrackValidCanvasName.c_str());
+    TCanvas* SeeddeltaPtforSimTrackvalidCanvas = new TCanvas("SeeddeltaPtforSimTrackvalidCanvas", "SeeddeltaPtforSimTrackvalidCanvas", 800, 600);
+    SeeddeltaPtforSimTrackvalidCanvas->cd();
+    SeeddeltaPtforSimTrackvalidHist->SetStats(1);
+    gStyle->SetOptFit(0111);
+    //SeeddeltaPtforSimTrackvalidHist->Fit("gaus", "", "", -1., 1.);
+    SeeddeltaPtforSimTrackvalidHist->GetXaxis()->SetTitle("(recPt-simPt)/simPt");
+    SeeddeltaPtforSimTrackvalidHist->GetXaxis()->CenterTitle();
+    SeeddeltaPtforSimTrackvalidHist->Draw();
+    string SeeddeltaPtforSimTrackvalidCanvasName = FinalOutput + "SeeddeltaPtforSimTrackvalid" + OutputPlotNameFix;
+    SeeddeltaPtforSimTrackvalidCanvas->SaveAs(SeeddeltaPtforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeedPurityforSimTrackValidCanvas = new TCanvas("SeedPurityforSimTrackValidCanvas", "SeedPurityforSimTrackValidCanvas", 800, 600);
-    SeedPurityforSimTrackValidCanvas->cd();
-    SeedPurityforSimTrackValidHist->Draw();
-    string SeedPurityforSimTrackValidCanvasName = FinalOutput + "SeedPurityforSimTrackValid" + OutputPlotNameFix;
-    SeedPurityforSimTrackValidCanvas->SaveAs(SeedPurityforSimTrackValidCanvasName.c_str());
+    TCanvas* SeeddeltaPhiforSimTrackvalidCanvas = new TCanvas("SeeddeltaPhiforSimTrackvalidCanvas", "SeeddeltaPhiforSimTrackvalidCanvas", 800, 600);
+    SeeddeltaPhiforSimTrackvalidCanvas->cd();
+    SeeddeltaPhiforSimTrackvalidHist->SetStats(1);
+    SeeddeltaPhiforSimTrackvalidHist->GetXaxis()->SetTitle("(recPhi-simPhi)/simPhi");
+    SeeddeltaPhiforSimTrackvalidHist->GetXaxis()->CenterTitle();
+    SeeddeltaPhiforSimTrackvalidHist->Draw();
+    string SeeddeltaPhiforSimTrackvalidCanvasName = FinalOutput + "SeeddeltaPhiforSimTrackvalid" + OutputPlotNameFix;
+    SeeddeltaPhiforSimTrackvalidCanvas->SaveAs(SeeddeltaPhiforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* ChargeCheckforSimTrackValidCanvas = new TCanvas("ChargeCheckforSimTrackValidCanvas", "ChargeCheckforSimTrackValidCanvas", 800, 600);
-    ChargeCheckforSimTrackValidCanvas->cd();
-    ChargeCheckforSimTrackValidHist->Draw();
-    string ChargeCheckforSimTrackValidCanvasName = FinalOutput + "ChargeCheckforSimTrackValid" + OutputPlotNameFix;
-    ChargeCheckforSimTrackValidCanvas->SaveAs(ChargeCheckforSimTrackValidCanvasName.c_str());
+    TCanvas* SeeddeltaEtaforSimTrackvalidCanvas = new TCanvas("SeeddeltaEtaforSimTrackvalidCanvas", "SeeddeltaEtaforSimTrackvalidCanvas", 800, 600);
+    SeeddeltaEtaforSimTrackvalidCanvas->cd();
+    SeeddeltaEtaforSimTrackvalidHist->SetStats(1);
+    SeeddeltaEtaforSimTrackvalidHist->GetXaxis()->SetTitle("(recEta-simEta)/simEta");
+    SeeddeltaEtaforSimTrackvalidHist->GetXaxis()->CenterTitle();
+    SeeddeltaEtaforSimTrackvalidHist->Draw();
+    string SeeddeltaEtaforSimTrackvalidCanvasName = FinalOutput + "SeeddeltaEtaforSimTrackvalid" + OutputPlotNameFix;
+    SeeddeltaEtaforSimTrackvalidCanvas->SaveAs(SeeddeltaEtaforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeedNumberforSimTrackValidCanvas = new TCanvas("SeedNumberforSimTrackValidCanvas", "SeedNumberforSimTrackValidCanvas", 800, 600);
-    SeedNumberforSimTrackValidCanvas->cd();
-    SeedNumberforSimTrackValidHist->Draw();
-    string SeedNumberforSimTrackValidCanvasName = FinalOutput + "SeedNumberforSimTrackValid" + OutputPlotNameFix;
-    SeedNumberforSimTrackValidCanvas->SaveAs(SeedNumberforSimTrackValidCanvasName.c_str());
 
-    TCanvas* SeedEfficiencyforSimTrackValidCanvas = new TCanvas("SeedEfficiencyforSimTrackValidCanvas", "SeedEfficiencyforSimTrackValidCanvas", 800, 600);
-    SeedEfficiencyforSimTrackValidCanvas->cd();
-    SeedEfficiencyforSimTrackValidHist->Draw();
-    string SeedEfficiencyforSimTrackValidCanvasName = FinalOutput + "SeedEfficiencyforSimTrackValid" + OutputPlotNameFix;
-    SeedEfficiencyforSimTrackValidCanvas->SaveAs(SeedEfficiencyforSimTrackValidCanvasName.c_str());
+    TCanvas* SeedPurityforSimTrackvalidCanvas = new TCanvas("SeedPurityforSimTrackvalidCanvas", "SeedPurityforSimTrackvalidCanvas", 800, 600);
+    SeedPurityforSimTrackvalidCanvas->cd();
+    SeedPurityforSimTrackvalidHist->Draw();
+    string SeedPurityforSimTrackvalidCanvasName = FinalOutput + "SeedPurityforSimTrackvalid" + OutputPlotNameFix;
+    SeedPurityforSimTrackvalidCanvas->SaveAs(SeedPurityforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeedNumberforSimTrackinValidCanvas = new TCanvas("SeedNumberforSimTrackinValidCanvas", "SeedNumberforSimTrackinValidCanvas", 800, 600);
-    SeedNumberforSimTrackinValidCanvas->cd();
-    SeedNumberforSimTrackinValidHist->Draw();
-    string SeedNumberforSimTrackinValidCanvasName = FinalOutput + "SeedNumberforSimTrackinValid" + OutputPlotNameFix;
-    SeedNumberforSimTrackinValidCanvas->SaveAs(SeedNumberforSimTrackinValidCanvasName.c_str());
+    TCanvas* ChargeCheckforSimTrackvalidCanvas = new TCanvas("ChargeCheckforSimTrackvalidCanvas", "ChargeCheckforSimTrackvalidCanvas", 800, 600);
+    ChargeCheckforSimTrackvalidCanvas->cd();
+    double HistEntries = ChargeCheckforSimTrackvalidHist->GetEntries() / 100.;
+    ChargeCheckforSimTrackvalidHist->Scale(1./HistEntries);
+    ChargeCheckforSimTrackvalidHist->GetXaxis()->SetTitle("simCharge*recCharge");
+    ChargeCheckforSimTrackvalidHist->GetXaxis()->CenterTitle(1);
+    ChargeCheckforSimTrackvalidHist->GetYaxis()->SetTitle("fraction %");
+    ChargeCheckforSimTrackvalidHist->GetYaxis()->CenterTitle(1);
+    ChargeCheckforSimTrackvalidHist->Draw();
+    string ChargeCheckforSimTrackvalidCanvasName = FinalOutput + "ChargeCheckforSimTrackvalid" + OutputPlotNameFix;
+    ChargeCheckforSimTrackvalidCanvas->SaveAs(ChargeCheckforSimTrackvalidCanvasName.c_str());
 
-    TCanvas* SeedEfficiencyforSimTrackinValidCanvas = new TCanvas("SeedEfficiencyforSimTrackinValidCanvas", "SeedEfficiencyforSimTrackinValidCanvas", 800, 600);
-    SeedEfficiencyforSimTrackinValidCanvas->cd();
-    SeedEfficiencyforSimTrackinValidHist->Draw();
-    string SeedEfficiencyforSimTrackinValidCanvasName = FinalOutput + "SeedEfficiencyforSimTrackinValid" + OutputPlotNameFix;
-    SeedEfficiencyforSimTrackinValidCanvas->SaveAs(SeedEfficiencyforSimTrackinValidCanvasName.c_str());
+    TCanvas* SeedNumberforSimTrackvalidCanvas = new TCanvas("SeedNumberforSimTrackvalidCanvas", "SeedNumberforSimTrackvalidCanvas", 800, 600);
+    SeedNumberforSimTrackvalidCanvas->cd();
+    SeedNumberforSimTrackvalidHist->Draw();
+    string SeedNumberforSimTrackvalidCanvasName = FinalOutput + "SeedNumberforSimTrackvalid" + OutputPlotNameFix;
+    SeedNumberforSimTrackvalidCanvas->SaveAs(SeedNumberforSimTrackvalidCanvasName.c_str());
+
+    TCanvas* SeedEfficiencyforSimTrackvalidCanvas = new TCanvas("SeedEfficiencyforSimTrackvalidCanvas", "SeedEfficiencyforSimTrackvalidCanvas", 800, 600);
+    SeedEfficiencyforSimTrackvalidCanvas->cd();
+    SeedEfficiencyforSimTrackvalidHist->Draw();
+    string SeedEfficiencyforSimTrackvalidCanvasName = FinalOutput + "SeedEfficiencyforSimTrackvalid" + OutputPlotNameFix;
+    SeedEfficiencyforSimTrackvalidCanvas->SaveAs(SeedEfficiencyforSimTrackvalidCanvasName.c_str());
+
+    TCanvas* SeedNumberforSimTrackinvalidCanvas = new TCanvas("SeedNumberforSimTrackinvalidCanvas", "SeedNumberforSimTrackinvalidCanvas", 800, 600);
+    SeedNumberforSimTrackinvalidCanvas->cd();
+    SeedNumberforSimTrackinvalidHist->Draw();
+    string SeedNumberforSimTrackinvalidCanvasName = FinalOutput + "SeedNumberforSimTrackinvalid" + OutputPlotNameFix;
+    SeedNumberforSimTrackinvalidCanvas->SaveAs(SeedNumberforSimTrackinvalidCanvasName.c_str());
+
+    TCanvas* SeedEfficiencyforSimTrackinvalidCanvas = new TCanvas("SeedEfficiencyforSimTrackinvalidCanvas", "SeedEfficiencyforSimTrackinvalidCanvas", 800, 600);
+    SeedEfficiencyforSimTrackinvalidCanvas->cd();
+    SeedEfficiencyforSimTrackinvalidHist->Draw();
+    string SeedEfficiencyforSimTrackinvalidCanvasName = FinalOutput + "SeedEfficiencyforSimTrackinvalid" + OutputPlotNameFix;
+    SeedEfficiencyforSimTrackinvalidCanvas->SaveAs(SeedEfficiencyforSimTrackinvalidCanvasName.c_str());
+
+    double SeedEfficiencyforSimTrackinvalid = 100. * SeedEfficiencyforSimTrackinvalidHist->GetMean();
+    double SeedEfficiencyforSimTrackvalid = 100. * SeedEfficiencyforSimTrackvalidHist->GetMean();
+    SeedEfficiencyHist->SetBinContent(1, SeedEfficiencyforSimTrackinvalid);
+    SeedEfficiencyHist->SetBinContent(2, SeedEfficiencyforSimTrackvalid);
+    SeedEfficiencyHist->GetXaxis()->SetBinLabel(1, "for invalid simTrack");
+    SeedEfficiencyHist->GetXaxis()->SetBinLabel(2, "for valid simTrack");
+    TCanvas* SeedEfficiencyCanvas = new TCanvas("SeedEfficiencyCanvas", "SeedEfficiencyCanvas", 800, 600);
+    SeedEfficiencyCanvas->cd();
+    SeedEfficiencyHist->GetYaxis()->SetTitle("Efficiency %");
+    SeedEfficiencyHist->GetYaxis()->CenterTitle(1);
+    SeedEfficiencyHist->SetMarkerStyle(3);
+    SeedEfficiencyHist->SetMarkerSize(3);
+    SeedEfficiencyHist->Draw("P");
+    string SeedEfficiencyCanvasName = FinalOutput + "SeedEfficiency" + OutputPlotNameFix;
+    SeedEfficiencyCanvas->SaveAs(SeedEfficiencyCanvasName.c_str());
 
     TCanvas* RecBendingPhi2PtCanvas = new TCanvas("RecBendingPhi2PtCanvas", "RecBendingPhi2PtCanvas", 800, 600);
     RecBendingPhi2PtCanvas->cd();

@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Thu Nov 20 01:40:00 CET 2008
-// $Id: RPCSeedValidator.cc,v 1.3 2012/05/11 02:58:50 hyteng Exp $
+// $Id: RPCSeedValidator.cc,v 1.4 2012/05/12 23:51:21 hyteng Exp $
 //
 //
 
@@ -147,7 +147,7 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         int SimTrackValid;
         bool PassSegmentFilter;
         DetId RefDet;
-        double SimMomentumatRef;
+        double SimMomentumPtatRef;
         double SimDirectionPhiatRef;
         double SimDirectionEtaatRef;
         double SimBendingEntryPositionX;
@@ -161,7 +161,7 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         int SeedCharge;
         double SeedPurity;
         double SeedQuality;
-        double RecMomentumatRef;
+        double RecMomentumPtatRef;
         double RecDirectionPhiatRef;
         double RecDirectionEtaatRef;
         double RecBendingEntryPositionX;
@@ -219,7 +219,7 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     ExTree->Branch("SimTrackCharge", &SimTrackCharge, "SimTrackCharge/I");
     ExTree->Branch("SimTrackValid", &SimTrackValid, "SimTrackValid/I");
     ExTree->Branch("PassSegmentFilter", &PassSegmentFilter, "PassSegmentFilter/O");
-    ExTree->Branch("SimMomentumatRef", &SimMomentumatRef, "SimMomentumatRef/D");
+    ExTree->Branch("SimMomentumPtatRef", &SimMomentumPtatRef, "SimMomentumPtatRef/D");
     ExTree->Branch("SimDirectionPhiatRef", &SimDirectionPhiatRef, "SimDirectionPhiatRef/D");
     ExTree->Branch("SimDirectionEtaatRef", &SimDirectionEtaatRef, "SimDirectionEtaatRef/D");
     ExTree->Branch("SimBendingEntryPositionX", &SimBendingEntryPositionX, "SimBendingEntryPositionX/D");
@@ -233,7 +233,7 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     ExTree->Branch("SeedCharge", &SeedCharge, "SeedCharge/I");
     ExTree->Branch("SeedPurity", &SeedPurity, "SeedPurity/D");
     ExTree->Branch("SeedQuality", &SeedQuality, "SeedQuality/D");
-    ExTree->Branch("RecMomentumatRef", &RecMomentumatRef ,"RecMomentumatRef/D");
+    ExTree->Branch("RecMomentumPtatRef", &RecMomentumPtatRef ,"RecMomentumPtatRef/D");
     ExTree->Branch("RecDirectionPhiatRef", &RecDirectionPhiatRef ,"RecDirectionPhiatRef/D");
     ExTree->Branch("RecDirectionEtaatRef", &RecDirectionEtaatRef ,"RecDirectionEtaatRef/D");
     ExTree->Branch("RecBendingEntryPositionX", &RecBendingEntryPositionX, "RecBendingEntryPositionX/D");
@@ -441,7 +441,7 @@ void RPCSeedValidator::findSeedforTrack() {
     if(debug) cout << "Finding corresponding RecHits in " << pTrajectorySeedCollection->size() << " seeds..." << endl;
 
     // Set the default value for no seed case and always fill it for each SimTrack
-    SimMomentumatRef = -1;
+    SimMomentumPtatRef = -1;
     SimDirectionPhiatRef = 0;
     SimDirectionEtaatRef = 0;
     SimBendingEntryPositionX = 0;
@@ -455,7 +455,7 @@ void RPCSeedValidator::findSeedforTrack() {
     SeedCharge = 0;
     SeedPurity = 0.;
     SeedQuality = 0;
-    RecMomentumatRef = -1;
+    RecMomentumPtatRef = -1;
     RecDirectionPhiatRef = 0;
     RecDirectionEtaatRef = 0;
     RecBendingEntryPositionX = 0;
@@ -511,7 +511,7 @@ void RPCSeedValidator::findSeedforTrack() {
                 if(debug) cout << "Charge of Rec is: " << SeedCharge << ", charge of Sim is: " << SimTrackCharge << endl;
                 RefDet = RPCSeedIter->startingState().detId();
                 GlobalVector GP = theRPCGeometry->idToDetUnit(RefDet)->toGlobal(SeedMomentum);
-                RecMomentumatRef = GP.perp();
+                RecMomentumPtatRef = GP.perp();
                 RecDirectionPhiatRef = GP.phi().value();
                 RecDirectionEtaatRef = GP.eta();
                 
@@ -539,7 +539,7 @@ void RPCSeedValidator::findSeedforTrack() {
 
                 ExTree->Fill();
 
-                if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecMomentumatRef: " << RecMomentumatRef << ", SimMomentumatRef: " << SimMomentumatRef << endl;
+                if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecMomentumPtatRef: " << RecMomentumPtatRef << ", SimMomentumPtatRef: " << SimMomentumPtatRef << endl;
                 if(debug) cout << "Find " << SeedNumber << "th seed in this track " << SimTrackId << endl;
             }
         }
@@ -815,13 +815,13 @@ void RPCSeedValidator::getSimPtatRef() {
             GlobalVector GlobalMomentum = theRPCRoll->toGlobal(LocalMomentum);
             GlobalPoint SimEntryPosition = theRPCRoll->toGlobal(pSimHit->entryPoint());
             GlobalPoint SimLeavePosition = theRPCRoll->toGlobal(pSimHit->exitPoint());
-            SimMomentumatRef = GlobalMomentum.perp();
+            SimMomentumPtatRef = GlobalMomentum.perp();
             SimDirectionPhiatRef = GlobalMomentum.phi().value();
             SimDirectionEtaatRef = GlobalMomentum.eta();
             if(debug) cout << "@ ref SimHit's entry Position is: " << SimEntryPosition.x() << ", " << SimEntryPosition.y() << ", " << SimEntryPosition.z() << endl;
             if(debug) cout << "@ ref SimHit's leave Position is: " << SimLeavePosition.x() << ", " << SimLeavePosition.y() << ", " << SimLeavePosition.z() << endl;
-            if(debug) cout << "@ ref SimHit's Pt and direction is: " << SimMomentumatRef << ", " << SimDirectionPhiatRef << ", " << SimDirectionEtaatRef << endl;
-            if(debug) cout << "@ ref RecHit's Pt and direction is: " << RecMomentumatRef << ", " << RecDirectionPhiatRef << endl;
+            if(debug) cout << "@ ref SimHit's Pt and direction is: " << SimMomentumPtatRef << ", " << SimDirectionPhiatRef << ", " << SimDirectionEtaatRef << endl;
+            if(debug) cout << "@ ref RecHit's Pt and direction is: " << RecMomentumPtatRef << ", " << RecDirectionPhiatRef << endl;
             isset = true;
         }
     }
