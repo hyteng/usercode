@@ -31,7 +31,7 @@ void RPCSeedValidator(string FileName) {
     int SimTrackCharge;
     int SimTrackvalid;
     bool PassSegmentFilter;
-    double SimMomentumatRef;
+    double SimMomentumPtatRef;
     double SimDirectionPhiatRef;
     double SimDirectionEtaatRef;
     double SimBendingPhi;
@@ -45,7 +45,7 @@ void RPCSeedValidator(string FileName) {
     int SeedCharge;
     double SeedPurity;
     double SeedQuality;
-    double RecMomentumatRef;
+    double RecMomentumPtatRef;
     double RecDirectionPhiatRef;
     double RecDirectionEtaatRef;
     double RecBendingPhi;
@@ -66,7 +66,7 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("SimTrackCharge", &SimTrackCharge);
     T0->SetBranchAddress("SimTrackValid", &SimTrackvalid);
     T0->SetBranchAddress("PassSegmentFilter", &PassSegmentFilter);
-    T0->SetBranchAddress("SimMomentumatRef", &SimMomentumatRef);
+    T0->SetBranchAddress("SimMomentumPtatRef", &SimMomentumPtatRef);
     T0->SetBranchAddress("SimDirectionPhiatRef", &SimDirectionPhiatRef);
     T0->SetBranchAddress("SimBendingPhi", &SimBendingPhi);
     T0->SetBranchAddress("SimBendingEntryPositionX", &SimBendingEntryPositionX);
@@ -79,7 +79,7 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("SeedCharge", &SeedCharge);
     T0->SetBranchAddress("SeedPurity", &SeedPurity);
     T0->SetBranchAddress("SeedQuality", &SeedQuality);
-    T0->SetBranchAddress("RecMomentumatRef", &RecMomentumatRef);
+    T0->SetBranchAddress("RecMomentumPtatRef", &RecMomentumPtatRef);
     T0->SetBranchAddress("RecDirectionPhiatRef", &RecDirectionPhiatRef);
     T0->SetBranchAddress("RecBendingPhi", &RecBendingPhi);
     T0->SetBranchAddress("RecBendingEntryPositionX", &RecBendingEntryPositionX);
@@ -115,19 +115,19 @@ void RPCSeedValidator(string FileName) {
     for(int i = 0; i < Nentries; i++) {
         T0->GetEntry(i);
 
-        if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", PassSegmentFilter: " << PassSegmentFilter << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecBendingLastPhi: " << RecBendingLastPhi << ", RecMomentumatRef: " << RecMomentumatRef << ", SimMomentumatRef: " << SimMomentumatRef << ", LastSeedNumber: " << LastSeedNumber << endl;
+        if(debug) cout << "SimTrackId: " << SimTrackId << ", SimTrackType: " << SimTrackType << ", PassSegmentFilter: " << PassSegmentFilter << ", SeedNumber: " << SeedNumber << ", SeedPurity: " << SeedPurity << ", SeedCharge: " << SeedCharge << ", SimTrackCharge: " << SimTrackCharge << ", SimBendingPhi: " << SimBendingPhi << ", RecBendingPhi: " << RecBendingPhi << ", RecBendingLastPhi: " << RecBendingLastPhi << ", RecMomentumPtatRef: " << RecMomentumPtatRef << ", SimMomentumPtatRef: " << SimMomentumPtatRef << ", LastSeedNumber: " << LastSeedNumber << endl;
 
         //if(SimTrackMomentum > 20.0)
             //continue;
 
         if(SeedNumber != 0) {
             if(SimTrackvalid == 1 && SeedPurity == 1. && PassSegmentFilter == true) {
-                SeedPtforSimTrackvalidHist->Fill(RecMomentumatRef);
-                SeeddeltaPtforSimTrackvalidHist->Fill((RecMomentumatRef-SimMomentumatRef)/SimMomentumatRef);
+                SeedPtforSimTrackvalidHist->Fill(RecMomentumPtatRef);
+                SeeddeltaPtforSimTrackvalidHist->Fill((RecMomentumPtatRef-SimMomentumPtatRef)/SimMomentumPtatRef);
                 SeeddeltaPhiforSimTrackvalidHist->Fill(RecDirectionPhiatRef-SimDirectionPhiatRef);
                 SeeddeltaEtaforSimTrackvalidHist->Fill(RecDirectionEtaatRef-SimDirectionEtaatRef);
-                RecBendingPhi2PtHist->Fill(SimMomentumatRef*SimTrackCharge, RecBendingPhi);
-                double PtRato = SimMomentumatRef / RecMomentumatRef;
+                RecBendingPhi2PtHist->Fill(SimMomentumPtatRef*SimTrackCharge, RecBendingPhi);
+                double PtRato = SimMomentumPtatRef / RecMomentumPtatRef;
                 if(debug) cout << "PtRato: " << PtRato << ", at RecBendingPhi: " << RecBendingPhi << endl;
                 PtRatoofRecBendingPhiHist->Fill(RecBendingPhi, PtRato);
                 RecBendingLastPhiHist->Fill((RecBendingLastPhi == 0. ? 0 : RecBendingLastPhi/fabs(RecBendingLastPhi))*SimTrackCharge);
@@ -135,10 +135,10 @@ void RPCSeedValidator(string FileName) {
                 ChargeCheckforSimTrackvalidHist->Fill(SeedCharge*SimTrackCharge);
                 /*
                 if(SeedPurity == 1) {
-                    //SeedPtforSimTrackvalidHist->Fill(RecMomentumatRef);
-                    //SeeddeltaPtforSimTrackvalidHist->Fill(RecMomentumatRef-SimMomentumatRef);
-                    RecBendingPhi2PtHist->Fill(SimMomentumatRef*SimTrackCharge, RecBendingPhi);
-                    double PtRato = SimMomentumatRef / RecMomentumatRef;
+                    //SeedPtforSimTrackvalidHist->Fill(RecMomentumPtatRef);
+                    //SeeddeltaPtforSimTrackvalidHist->Fill(RecMomentumPtatRef-SimMomentumPtatRef);
+                    RecBendingPhi2PtHist->Fill(SimMomentumPtatRef*SimTrackCharge, RecBendingPhi);
+                    double PtRato = SimMomentumPtatRef / RecMomentumPtatRef;
                     if(debug) cout << "PtRato: " << PtRato << ", at RecBendingPhi: " << RecBendingPhi << endl;
                     PtRatoofRecBendingPhiHist->Fill(RecBendingPhi, PtRato);
                     RecBendingLastPhiHist->Fill((RecBendingLastPhi == 0. ? 0 : RecBendingLastPhi/fabs(RecBendingLastPhi))*SimTrackCharge);
