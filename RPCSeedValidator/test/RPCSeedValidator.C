@@ -68,6 +68,7 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("PassSegmentFilter", &PassSegmentFilter);
     T0->SetBranchAddress("SimMomentumPtatRef", &SimMomentumPtatRef);
     T0->SetBranchAddress("SimDirectionPhiatRef", &SimDirectionPhiatRef);
+    T0->SetBranchAddress("SimDirectionEtaatRef", &SimDirectionEtaatRef);
     T0->SetBranchAddress("SimBendingPhi", &SimBendingPhi);
     T0->SetBranchAddress("SimBendingEntryPositionX", &SimBendingEntryPositionX);
     T0->SetBranchAddress("SimBendingEntryPositionY", &SimBendingEntryPositionY);
@@ -81,6 +82,7 @@ void RPCSeedValidator(string FileName) {
     T0->SetBranchAddress("SeedQuality", &SeedQuality);
     T0->SetBranchAddress("RecMomentumPtatRef", &RecMomentumPtatRef);
     T0->SetBranchAddress("RecDirectionPhiatRef", &RecDirectionPhiatRef);
+    T0->SetBranchAddress("RecDirectionEtaatRef", &RecDirectionEtaatRef);
     T0->SetBranchAddress("RecBendingPhi", &RecBendingPhi);
     T0->SetBranchAddress("RecBendingEntryPositionX", &RecBendingEntryPositionX);
     T0->SetBranchAddress("RecBendingEntryPositionY", &RecBendingEntryPositionY);
@@ -207,7 +209,7 @@ void RPCSeedValidator(string FileName) {
     TCanvas* SeeddeltaPhiforSimTrackvalidCanvas = new TCanvas("SeeddeltaPhiforSimTrackvalidCanvas", "SeeddeltaPhiforSimTrackvalidCanvas", 800, 600);
     SeeddeltaPhiforSimTrackvalidCanvas->cd();
     SeeddeltaPhiforSimTrackvalidHist->SetStats(1);
-    SeeddeltaPhiforSimTrackvalidHist->GetXaxis()->SetTitle("(recPhi-simPhi)/simPhi");
+    SeeddeltaPhiforSimTrackvalidHist->GetXaxis()->SetTitle("(recPhi-simPhi)");
     SeeddeltaPhiforSimTrackvalidHist->GetXaxis()->CenterTitle();
     SeeddeltaPhiforSimTrackvalidHist->Draw();
     string SeeddeltaPhiforSimTrackvalidCanvasName = FinalOutput + "SeeddeltaPhiforSimTrackvalid" + OutputPlotNameFix;
@@ -216,7 +218,7 @@ void RPCSeedValidator(string FileName) {
     TCanvas* SeeddeltaEtaforSimTrackvalidCanvas = new TCanvas("SeeddeltaEtaforSimTrackvalidCanvas", "SeeddeltaEtaforSimTrackvalidCanvas", 800, 600);
     SeeddeltaEtaforSimTrackvalidCanvas->cd();
     SeeddeltaEtaforSimTrackvalidHist->SetStats(1);
-    SeeddeltaEtaforSimTrackvalidHist->GetXaxis()->SetTitle("(recEta-simEta)/simEta");
+    SeeddeltaEtaforSimTrackvalidHist->GetXaxis()->SetTitle("(recEta-simEta)");
     SeeddeltaEtaforSimTrackvalidHist->GetXaxis()->CenterTitle();
     SeeddeltaEtaforSimTrackvalidHist->Draw();
     string SeeddeltaEtaforSimTrackvalidCanvasName = FinalOutput + "SeeddeltaEtaforSimTrackvalid" + OutputPlotNameFix;
