@@ -16,12 +16,16 @@
 
 void composeRPCSeedValidator(string FileListName, int FileNumber) {
 
+    gStyle->SetOptTitle(0);
+    gStyle->SetOptStat("");
+
+
     if(debug) cout << FileListName << endl;
     string theFileName;
     ifstream composeFileList;
     composeFileList.open(FileListName.c_str());
 
-    string OutputPlotNameFix = ".png";
+    string OutputPlotNameFix = ".eps";
 
     unsigned int EventNumber;
     int SimTrackId;
@@ -65,7 +69,7 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
     for(int Index = 0; Index < FileNumber; Index++) {
         getline(composeFileList, theFileName);
         string Output = theFileName + "_";
-        string FullFilePath = "data0/" + theFileName;
+        string FullFilePath = "hist/" + theFileName;
         TFile* RootFile = TFile::Open(FullFilePath.c_str());
         TTree* T0 = (TTree*)RootFile->Get("ExTree");
         T0->SetBranchAddress("EventNumber", &EventNumber);
@@ -74,7 +78,7 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
         T0->SetBranchAddress("SimTrackMomentum", &SimTrackMomentum);
         T0->SetBranchAddress("SimTrackDirectionPhi", &SimTrackDirectionPhi);
         T0->SetBranchAddress("SimTrackCharge", &SimTrackCharge);
-        T0->SetBranchAddress("SimTrackvalid", &SimTrackValid);
+        T0->SetBranchAddress("SimTrackValid", &SimTrackValid);
         T0->SetBranchAddress("PassSegmentFilter", &PassSegmentFilter);
         T0->SetBranchAddress("SimMomentumatRef", &SimMomentumatRef);
         T0->SetBranchAddress("SimDirectionPhiatRef", &SimDirectionPhiatRef);
@@ -156,32 +160,42 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
     }
 
     TH1D* ScanDeltaPtforSimTrackValidHist = (TH1D*) new TH1D("ScanDeltaPtforSimTrackValid", "ScanDeltaPtforSimTrackValid", 505, 0, 101);
-    //TH1D* ScanChargeCheckforSimTrackValidHist = (TH1D*) new TH1D("ScanInverseChargeCheckforSimTrackValid", "ScanInverseChargeCheckforSimTrackValid", 505, 0, 101);
-    //TH1D* ScanEfficienyforSimTrackValidHist = (TH1D*) new TH1D("ScanEfficienyforSimTrackValid", "ScanEfficienyforSimTrackValid", 505, 0, 101);
+    TH1D* ScanChargeCheckforSimTrackValidHist = (TH1D*) new TH1D("ScanInverseChargeCheckforSimTrackValid", "ScanInverseChargeCheckforSimTrackValid", 505, 0, 101);
+    TH1D* ScanEfficienyforSimTrackValidHist = (TH1D*) new TH1D("ScanEfficienyforSimTrackValid", "ScanEfficienyforSimTrackValid", 505, 0, 101);
 
 
     for(int Index = 0; Index < FileNumber; Index++) {
-        //double EfficiencyforPt = ((TH1D*)(myEffonValidHist->At(Index)))->GetMean();
-        //double InverseChargeEvent = ((TH1D*)(myChargeCheckHist->At(Index)))->GetBinContent(2);
-        //double CoverseChargeEvent = ((TH1D*)(myChargeCheckHist->At(Index)))->GetBinContent(4);
-        //double InverseChargeRato = 100. * InverseChargeEvent / (CoverseChargeEvent + InverseChargeEvent);
-        TCanvas* FitCanvas = new TCanvas("FitCanvas", "FitCanvas", 800, 600);
-        FitCanvas->cd();
-        ((TH1D*)(myDeltaPtHist->At(Index)))->Fit("landau", "", "");
-        double DeltaPtValue = ((TH1D*)(myDeltaPtHist->At(Index)))->GetFunction("landau")->GetParameter(1);
-        double DeltaPtError = ((TH1D*)(myDeltaPtHist->At(Index)))->GetFunction("landau")->GetParameter(2);
+        double EfficiencyforPt = ((TH1D*)(myEffonValidHist->At(Index)))->GetMean();
+        double InverseChargeEvent = ((TH1D*)(myChargeCheckHist->At(Index)))->GetBinContent(2);
+        double CoverseChargeEvent = ((TH1D*)(myChargeCheckHist->At(Index)))->GetBinContent(4);
+        double InverseChargeRato = 100. * InverseChargeEvent / (CoverseChargeEvent + InverseChargeEvent);
+        if(((TH1D*)(myDeltaPtHist->At(Index)))->GetEntries() == 0)
+            continue;
+
+        //TCanvas* FitCanvas = new TCanvas("FitCanvas", "FitCanvas", 800, 600);
+        //FitCanvas->cd();
+        int MaxBin = ((TH1D*)(myDeltaPtHist->At(Index)))->GetMaximumBin();
+        double MaxBinCenter = ((TH1D*)(myDeltaPtHist->At(Index)))->GetBinCenter(MaxBin);
+        double RMS = ((TH1D*)(myDeltaPtHist->At(Index)))->GetRMS();
+        ((TH1D*)(myDeltaPtHist->At(Index)))->Fit("gaus", "", "", MaxBinCenter-0.5*RMS, MaxBinCenter+0.5*RMS);
+        double DeltaPtValue = ((TH1D*)(myDeltaPtHist->At(Index)))->GetFunction("gaus")->GetParameter(1);
+        double DeltaPtError = ((TH1D*)(myDeltaPtHist->At(Index)))->GetFunction("gaus")->GetParameter(2); 
+        if(DeltaPtValue < (MaxBinCenter-RMS)) {
+            DeltaPtValue = MaxBinCenter;
+            DeltaPtError = RMS;
+        }
 
         std::stringstream TempIndex;
         TempIndex << Index;
         string FitIndex = TempIndex.str();
         string FitSaveName = "Fit" + FitIndex + OutputPlotNameFix;
-        FitCanvas->SaveAs(FitSaveName.c_str());
+        //FitCanvas->SaveAs(FitSaveName.c_str());
 
         int PtBinNumber = ScanDeltaPtforSimTrackValidHist->FindBin(simPtArray[Index]);
         ScanDeltaPtforSimTrackValidHist->SetBinContent(PtBinNumber, DeltaPtValue);
         ScanDeltaPtforSimTrackValidHist->SetBinError(PtBinNumber, DeltaPtError);
-        //ScanChargeCheckforSimTrackValidHist->SetBinContent(PtBinNumber, InverseChargeRato);
-        //ScanEfficienyforSimTrackValidHist->SetBinContent(PtBinNumber, EfficiencyforPt*100.);
+        ScanChargeCheckforSimTrackValidHist->SetBinContent(PtBinNumber, InverseChargeRato);
+        ScanEfficienyforSimTrackValidHist->SetBinContent(PtBinNumber, EfficiencyforPt*100.);
     }
 
     TGraph* ScanEfficiencyforSimTrackValidGraph = (TGraph*)new TGraph(simPtArray.size(), &simPtArray[0], &EfficiencyArray[0]);
@@ -192,7 +206,8 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
     TCanvas* OutputCanvas0 = new TCanvas("Canvas0", "Canvas0", 800, 600);
     OutputCanvas0->cd();
 
-    ScanDeltaPtforSimTrackValidHist->SetTitle("ScanDeltaPtforSimTrackValid");
+    ScanDeltaPtforSimTrackValidHist->SetStats(0);
+    //ScanDeltaPtforSimTrackValidHist->SetTitle("ScanDeltaPtforSimTrackValid");
     ScanDeltaPtforSimTrackValidHist->SetLineColor(kRed);
     ScanDeltaPtforSimTrackValidHist->GetXaxis()->SetTitle("simPt/Gev");
     ScanDeltaPtforSimTrackValidHist->GetXaxis()->CenterTitle(1);
@@ -205,7 +220,7 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
     TCanvas* OutputCanvas1 = new TCanvas("Canvas1", "Canvas1", 800, 600);
     OutputCanvas1->cd();
 
-    ScanEfficiencyforSimTrackValidGraph->SetTitle("ScanEfficienyforSimTrackValid");
+    //ScanEfficiencyforSimTrackValidGraph->SetTitle("ScanEfficienyforSimTrackValid");
     ScanEfficiencyforSimTrackValidGraph->GetXaxis()->SetTitle("simPt/Gev");
     ScanEfficiencyforSimTrackValidGraph->GetXaxis()->CenterTitle(1);
     ScanEfficiencyforSimTrackValidGraph->GetYaxis()->SetTitle("SeedingEfficiency %");
@@ -218,7 +233,7 @@ void composeRPCSeedValidator(string FileListName, int FileNumber) {
     //OutputCanvas2->cd();
 
 
-    ScanChargeCheckforSimTrackValidGraph->SetTitle("ScanChargeCheckforSimTrackValid");
+    //ScanChargeCheckforSimTrackValidGraph->SetTitle("ScanChargeCheckforSimTrackValid");
     ScanChargeCheckforSimTrackValidGraph->GetXaxis()->SetTitle("simPt/Gev");
     ScanChargeCheckforSimTrackValidGraph->GetXaxis()->CenterTitle(1);
     ScanChargeCheckforSimTrackValidGraph->GetYaxis()->SetTitle("InverseChargeRato %");
