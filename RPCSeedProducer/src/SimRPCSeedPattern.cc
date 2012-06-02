@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2009/10/31 02:00:48 $
- *  $Revision: 1.2 $
+ *  $Date: 2012/03/25 18:28:14 $
+ *  $Revision: 1.4 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -69,6 +69,9 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     CutMax = iConfig.getParameter< vector<double> >("CutMax");
     BendingPhiLowerTH = iConfig.getParameter< vector<double> >("BendingPhiLowerTH");
     BendingPhiUpperTH = iConfig.getParameter< vector<double> >("BendingPhiUpperTH");
+    ProbingPhiUpperTH = iConfig.getParameter< vector<double> >("ProbingPhiUpperTH");
+    ProbingPhiLowerTH = iConfig.getParameter< vector<double> >("ProbingPhiLowerTH");
+    ExhaustivePhiTH = iConfig.getParameter< vector<double> >("ExhaustivePhiTH");
     BendingPhiFitValueUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitValueUpperLimit");
     BendingPhiFitSigmaUpperLimit = iConfig.getParameter< vector<double> >("BendingPhiFitSigmaUpperLimit");
     MeanPt_Parameter0 = iConfig.getParameter< vector<double> >("MeanPt_Parameter0");
@@ -83,9 +86,10 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
         applyFilter = false;
     else
         applyFilter = true;
-    
-    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
+
+    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || ProbingPhiUpperTH.size() == 0 || ProbingPhiLowerTH.size() == 0 || ExhaustivePhiTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
         isConfigured = false;
+
 }
 
 void SimRPCSeedPattern::setRecHits(const ConstMuonRecHitContainer& RecHits) {
@@ -150,7 +154,7 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::seed(const edm::Eve
         checkDoubleSegmentPattern();
     if(Algorithm >= 5 && Algorithm <= 12)
         checkSingleSegmentPattern();
-    
+
     computePatternfromSimData();        
 
     return createSeed(isGoodSeed);
@@ -260,7 +264,7 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
         theRefRecHit = theRecHits[0];
         MeanMagneticField = getMeanMagneticField(1);
     }
-    
+
     DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
     if(fabs(DistanceZ) > ZError) { 
         if(DistanceZ > ZError)
@@ -356,7 +360,7 @@ int SimRPCSeedPattern::checkAlgorithm() {
     if(isBarrel == false && isNegativeEndcap == false && isPositiveEndcap == true && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
         AlgorithmChoice.push_back(83);
 
- 
+
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
     if(AlgorithmType == 0 && AlgorithmChoice.size() > 0) {
@@ -388,7 +392,7 @@ bool SimRPCSeedPattern::checkParameters(unsigned int theAlgorithmType) {
         AlgorithmIndex = theAlgorithmType * 2;
 
     bool isParametersSet = true;
-    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
+    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiLowerTH.size() < AlgorithmIndex || ExhaustivePhiTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
         isParametersSet = false;
 
     if(debug) cout << "checkParameters for Algorithm: " << theAlgorithmType << ". isSet: " << isParametersSet << endl;
@@ -489,30 +493,43 @@ void SimRPCSeedPattern::createPattern() {
         BendingPhiCollection.push_back(TempBendingPhi);
     }
     BendingPhiMax = findMaxBendingPhi();
-    
+
     // set the signal
     isGoodPattern = -1;
     isPatternChecked = false;
 }
 
-void SimRPCSeedPattern::checkDoubleSegmentPattern() {
-    if(isPatternChecked == true)
-        return;
+    void SimRPCSeedPattern::checkDoubleSegmentPattern() {
+        if(isPatternChecked == true)
+            return;
 
-    isGoodPattern = 1;
+        isGoodPattern = 1;
 
-    if(BendingPhiCollection.size() < 3 || Algorithm <= 0 || Algorithm > 4)
-        isGoodPattern = -1;
-    else {
-        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
-            << endl;
+        if(Algorithm <= 0 || Algorithm > 4)
+            isGoodPattern = -1;
 
         if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
             isGoodPattern = -1;
-        if(applyFilter == true) 
-            if(BendingPhiCollection[0]*BendingPhiCollection[2] < 0.)
-                isGoodPattern = -1;
-        
+
+        if(isVertexConstraint == false) {
+            if(applyFilter == true)
+                if(BendingPhiCollection[0]*BendingPhiCollection[2] < 0.)
+                    isGoodPattern = -1;
+        }
+        else {
+            if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+                if(applyFilter == true) {
+                    if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. || BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.) {
+                        if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. && BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.)
+                            BendingPhiMax *= -1.;
+                        else
+                            isGoodPattern = -1;
+                    }
+                }
+                else
+                    isGoodPattern = -1;
+            }
+        }
         // Check the Z direction
         if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
         for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
@@ -529,27 +546,39 @@ void SimRPCSeedPattern::checkDoubleSegmentPattern() {
                 }
             }
         }
+        isPatternChecked = true;
     }
-    isPatternChecked = true;
-}
 
-void SimRPCSeedPattern::checkSingleSegmentPattern() {
-    if(isPatternChecked == true)
-        return;
 
-    isGoodPattern = 1;
+    void SimRPCSeedPattern::checkSingleSegmentPattern() {
+        if(isPatternChecked == true)
+            return;
 
-    if(BendingPhiCollection.size() < 2 || Algorithm <= 4 || Algorithm > 12)
-        isGoodPattern = -1;
-    else {
-        if(debug) cout << "BendingPhiCollection[0]: " << BendingPhiCollection[0] << ", BendingPhiMax: " << BendingPhiMax
-            << endl;
+        isGoodPattern = 1;
 
-        if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+        if(Algorithm <= 4 || Algorithm > 12)
             isGoodPattern = -1;
-        if(applyFilter == true)
-            if(BendingPhiCollection[0]*(BendingPhiCollection[1]-BendingPhiCollection[0]) < 0.)
-                isGoodPattern = -1;
+
+
+        if(fabs(BendingPhiCollection[BendingPhiCollection.size()-1]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
+            isGoodPattern = -1;
+
+        if(isVertexConstraint == false) {
+            if(applyFilter == true)
+                if(BendingPhiCollection[0]*(BendingPhiCollection[1]-BendingPhiCollection[0]) < 0.)
+                    isGoodPattern = -1;
+        }
+        else {          
+            if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+                if(applyFilter == true) {
+                    if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0.) {
+                        isGoodPattern = -1;
+                    }
+                }
+                else
+                    isGoodPattern = -1;
+            }
+        }
 
         // Check the Z direction
         if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
@@ -567,9 +596,9 @@ void SimRPCSeedPattern::checkSingleSegmentPattern() {
                 }
             }
         }
+
+        isPatternChecked = true;
     }
-    isPatternChecked = true;
-}
 
 double SimRPCSeedPattern::findMaxBendingPhi() {
     double MaxBendingPhi = 0.;
@@ -585,7 +614,7 @@ double SimRPCSeedPattern::findMaxBendingPhi() {
 void SimRPCSeedPattern::computePatternfromSimData() {
 
     if(debug) cout << "estimating RPC Seed by SimData..." << endl;
-    
+
     if(isGoodPattern < 0 || isPatternChecked == false) {
         if(debug) cout << "Pattern not pass filter." << endl;
         MeanPt = 0.;
@@ -597,21 +626,21 @@ void SimRPCSeedPattern::computePatternfromSimData() {
     }
 
     isGoodPattern = 1;
-    if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
+
+    if(fabs(BendingPhiMax) < ProbingPhiLowerTH[Algorithm-1]) {
         BendingWise = 0;
         Charge = 0;
         isGoodPattern = 0;
     }   
-    else {
-        BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
-        Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
-    }
+
+    BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
+    Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
 
     if(RecHit2SimHitMap.find(theRecHits[RefIndex]) != RecHit2SimHitMap.end()) {
         const PSimHit& thePSimHit = RecHit2SimHitMap[theRecHits[RefIndex]];
         Momentum = theRecHits[RefIndex]->det()->toGlobal(thePSimHit.momentumAtEntry());
         MeanPt = Momentum.perp();
-        SigmaPt = MeanPt / 2.;
+        SigmaPt = MeanPt / 5.;
         RefTrackId = thePSimHit.trackId();
         RefParticleType = thePSimHit.particleType();
         Charge = -1 * RefParticleType / abs(RefParticleType);

@@ -86,6 +86,9 @@ class SimRPCSeedPattern {
     std::vector<double> CutMax;
     std::vector<double> BendingPhiLowerTH;
     std::vector<double> BendingPhiUpperTH;
+    std::vector<double> ProbingPhiLowerTH;
+    std::vector<double> ProbingPhiUpperTH;
+    std::vector<double> ExhaustivePhiTH;
     std::vector<double> BendingPhiFitValueUpperLimit;
     std::vector<double> BendingPhiFitSigmaUpperLimit;
     std::vector<double> MeanPt_Parameter0;
