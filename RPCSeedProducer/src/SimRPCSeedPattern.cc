@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/03/25 18:28:14 $
- *  $Revision: 1.4 $
+ *  $Date: 2012/06/02 20:38:31 $
+ *  $Revision: 1.5 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -490,6 +490,7 @@ void SimRPCSeedPattern::createPattern() {
         // vertex bendingPhi is reverse w.r.t normal case
         if(i == j)
             TempBendingPhi *= -1.;
+
         BendingPhiCollection.push_back(TempBendingPhi);
     }
     BendingPhiMax = findMaxBendingPhi();
@@ -498,6 +499,7 @@ void SimRPCSeedPattern::createPattern() {
     isGoodPattern = -1;
     isPatternChecked = false;
 }
+
 
     void SimRPCSeedPattern::checkDoubleSegmentPattern() {
         if(isPatternChecked == true)
