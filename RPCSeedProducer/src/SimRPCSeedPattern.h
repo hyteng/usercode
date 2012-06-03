@@ -77,7 +77,7 @@ class SimRPCSeedPattern {
     // parameters for configuration
     double ZError;
     double MagnecticFieldThreshold;
-    unsigned int sampleCount;
+    unsigned int SampleCount;
     int AlgorithmType;
     bool isVertexConstraint;
     bool isContinuousFilter;
@@ -107,7 +107,7 @@ class SimRPCSeedPattern {
     GlobalPoint theRecHitPosition[6];
     edm::ESHandle<MagneticField> theMagneticField;
     // magnetic field info
-    std::vector<GlobalVector> sampleMagneticField;
+    std::vector<GlobalVector> SampleMagneticField;
     std::vector<bool> IntervalMagneticFlux;
     GlobalVector MeanMagneticField;
     // double segment pattern

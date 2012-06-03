@@ -53,6 +53,7 @@ class RPCSeedPattern {
     void checkDoubleSegmentPattern();
     void checkSingleSegmentPattern();
     void computeSegmentPattern();
+    GlobalVector correctPhiatRef();
     double findMaxBendingPhi();
     void measureRecHitandMagneticField();
     int findIntervalIndex();
@@ -67,7 +68,7 @@ class RPCSeedPattern {
     // parameters for configuration
     double ZError;
     double MagnecticFieldThreshold;
-    unsigned int sampleCount;
+    unsigned int SampleCount;
     int AlgorithmType;
     bool isVertexConstraint;
     bool isContinuousFilter;
@@ -98,7 +99,7 @@ class RPCSeedPattern {
     GlobalPoint theRecHitPosition[BarrelLayerNumber+EachEndcapLayerNumber];
     edm::ESHandle<MagneticField> theMagneticField;
     // magnetic field info
-    std::vector<GlobalVector> sampleMagneticField;
+    std::vector<GlobalVector> SampleMagneticField;
     std::vector<bool> IntervalMagneticFlux;
     GlobalVector MeanMagneticField;
     // Pattern parameter

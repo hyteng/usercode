@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/04/18 02:19:55 $
- *  $Revision: 1.6 $
+ *  $Date: 2012/04/21 19:23:26 $
+ *  $Revision: 1.7 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -49,7 +49,7 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
 
     ZError = iConfig.getParameter<double>("ZError");
     MagnecticFieldThreshold = iConfig.getParameter<double>("MagnecticFieldThreshold");
-    sampleCount = iConfig.getParameter<unsigned int>("sampleCount");
+    SampleCount = iConfig.getParameter<unsigned int>("SampleCount");
     AlgorithmType = iConfig.getParameter<unsigned int>("AlgorithmType");
     isVertexConstraint = iConfig.getParameter<bool>("isVertexConstraint");
     isContinuousFilter = iConfig.getParameter<bool>("isContinuousFilter");
@@ -152,30 +152,30 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
 
 void RPCSeedPattern::measureRecHitandMagneticField() {
     // Get distance and magnetice field sampling information, recHit's position is not the border of Chamber and Iron
-    sampleMagneticField.clear();
+    SampleMagneticField.clear();
     DistanceXY = 0;
     IntervalMagneticFlux.clear();
     for(ConstMuonRecHitContainer::const_iterator RecHitIter = theRecHits.begin(); RecHitIter != (theRecHits.end()-1); RecHitIter++) {
         GlobalPoint FirstPosition = (*RecHitIter)->globalPosition();
         GlobalPoint LastPosition = (*(RecHitIter+1))->globalPosition();
         DistanceXY += ((GlobalVector)(LastPosition - FirstPosition)).perp();
-        GlobalPoint* samplePosition = new GlobalPoint[sampleCount];
-        double dX = (LastPosition.x() - FirstPosition.x()) / (sampleCount + 1);
-        double dY = (LastPosition.y() - FirstPosition.y()) / (sampleCount + 1);
-        double dZ = (LastPosition.z() - FirstPosition.z()) / (sampleCount + 1);
+        GlobalPoint* SamplePosition = new GlobalPoint[SampleCount];
+        double dX = (LastPosition.x() - FirstPosition.x()) / (SampleCount + 1);
+        double dY = (LastPosition.y() - FirstPosition.y()) / (SampleCount + 1);
+        double dZ = (LastPosition.z() - FirstPosition.z()) / (SampleCount + 1);
         bool isLowMagneticField = true;
-        for(unsigned int index = 0; index < sampleCount; index++) {
-            samplePosition[index] = GlobalPoint((FirstPosition.x()+dX*(index+1)), (FirstPosition.y()+dY*(index+1)), (FirstPosition.z()+dZ*(index+1)));
-            GlobalVector TempMagneticField = theMagneticField->inTesla(samplePosition[index]);
+        for(unsigned int index = 0; index < SampleCount; index++) {
+            SamplePosition[index] = GlobalPoint((FirstPosition.x()+dX*(index+1)), (FirstPosition.y()+dY*(index+1)), (FirstPosition.z()+dZ*(index+1)));
+            GlobalVector TempMagneticField = theMagneticField->inTesla(SamplePosition[index]);
             // for endcap the magnetic field could be complex so use mag() intead of z() while checking
             if(fabs(TempMagneticField.z()) > MagnecticFieldThreshold)
                 isLowMagneticField = false;
             if(debug) cout << "Sampling magnetic field : " << TempMagneticField << endl;
-            sampleMagneticField.push_back(TempMagneticField);
+            SampleMagneticField.push_back(TempMagneticField);
         }
         if(debug) cout << "IntervalMagneticFlux(0-high,1-low): " << isLowMagneticField << endl;
         IntervalMagneticFlux.push_back(isLowMagneticField);
-        delete [] samplePosition;
+        delete [] SamplePosition;
     }
     int IntervalIndex = findIntervalIndex();
     if(IntervalIndex > 0) {
@@ -234,19 +234,19 @@ int RPCSeedPattern::findIntervalIndex() {
 
 GlobalVector RPCSeedPattern::getMeanMagneticField(const int IntervalIndex) {
     GlobalVector theMagneticField(0, 0, 0);
-    unsigned int sampleNumber = 0;
-    if(IntervalIndex < 0 || sampleCount <= 0)
+    unsigned int SampleNumber = 0;
+    if(IntervalIndex < 0 || SampleCount <= 0)
         return theMagneticField;
-    for(unsigned int i = IntervalIndex*sampleCount; i < (IntervalIndex+1)*sampleCount; i++) {
-        GlobalVector TempMagnaeticField = sampleMagneticField[i];
+    for(unsigned int i = IntervalIndex*SampleCount; i < (IntervalIndex+1)*SampleCount; i++) {
+        GlobalVector TempMagnaeticField = SampleMagneticField[i];
         if(TempMagnaeticField.mag() > MagnecticFieldThreshold) {
             theMagneticField += TempMagnaeticField;
-            sampleNumber++;
+            SampleNumber++;
         }
     }
-    if(sampleNumber == 0)
-        sampleNumber = 1.;
-    return theMagneticField / sampleNumber;
+    if(SampleNumber == 0)
+        SampleNumber = 1.;
+    return theMagneticField / SampleNumber;
 }
 
 int RPCSeedPattern::checkAlgorithm() {
@@ -553,18 +553,7 @@ void RPCSeedPattern::computeSegmentPattern() {
     }
 
     isGoodPattern = 1;
-    //double BendingPhi = findMaxBendingPhi();
-    /*
-       if(fabs(BendingPhiMax) < BendingPhiLowerTH[Algorithm-1]) {
-       BendingWise = 0;
-       Charge = 0;
-       isGoodPattern = 0;
-       }
-       else {
-       BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
-       Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
-       }
-       */
+    
     BendingWise = (BendingPhiMax > 0.) ? 1 : -1;
     Charge = BendingWise * (int)(fabs(MeanMagneticField.z()) / MeanMagneticField.z()) * -1;
 
@@ -602,8 +591,9 @@ void RPCSeedPattern::computeSegmentPattern() {
     }
 
 
-    GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());
-    GlobalVector InitialPt = GlobalVector(RefSegmentVector.x(), RefSegmentVector.y(), 0);
+    //GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());
+    //GlobalVector InitialPt = GlobalVector(RefSegmentVector.x(), RefSegmentVector.y(), 0);
+    GlobalVector InitialPt = correctPhiatRef();
     GlobalVector InitialMomentum = InitialPt.unit() * DistanceXY + GlobalVector(0, 0, DistanceZ);
     /*
        if(isVertexConstraint == false)
@@ -614,6 +604,27 @@ void RPCSeedPattern::computeSegmentPattern() {
     Momentum = InitialMomentum.unit() * InitialMomentum.mag() * MeanPt / InitialMomentum.perp();
 
     if(debug) cout << "BendingPhiMax: " << BendingPhiMax << ", MeanPt: " << MeanPt << "SigmaPt: " << SigmaPt << ", Momentum: " << Momentum << endl;
+}
+
+GlobalVector RPCSeedPattern::correctPhiatRef() {
+    GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());
+    double LinkedPhi = RefSegmentVector.unit().phi().value();
+    double LinkedTheta = RefSegmentVector.unit().theta();
+    double BendingPhiCorrection = 0.;
+    double SampleHelixS = RefSegmentVector.perp() / SampleCount;
+    for(unsigned int i = RefIndex*SampleCount; i < (RefIndex+1)*SampleCount; i++) {
+        GlobalVector TempMagnaeticField = SampleMagneticField[i];
+        double TempBz = TempMagnaeticField.z();
+        if(TempBz == 0.|| MeanPt == 0. || Charge == 0)
+            continue;
+        double TempBendingRadius = fabs((MeanPt*100.)/(0.3*TempBz));
+        double TempBendingPhi = ((double)Charge*-1.*fabs(TempBz)*SampleHelixS)/(TempBendingRadius*TempBz);
+        BendingPhiCorrection += TempBendingPhi;
+    }
+    double CorrectedPhi = LinkedPhi - BendingPhiCorrection;
+    double CorrectedTheta = 0.;
+    GlobalVector RefPtVector(GlobalVector::Polar(CorrectedTheta, CorrectedPhi, 1.) );
+    return RefPtVector;
 }
 
 double RPCSeedPattern::findMaxBendingPhi() {

@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/02 20:38:31 $
- *  $Revision: 1.5 $
+ *  $Date: 2012/06/03 03:13:52 $
+ *  $Revision: 1.6 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -61,7 +61,7 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     SeedPurityTH = iConfig.getParameter<double>("SeedPurityTH");
     ZError = iConfig.getParameter<double>("ZError");
     MagnecticFieldThreshold = iConfig.getParameter<double>("MagnecticFieldThreshold");
-    sampleCount = iConfig.getParameter<unsigned int>("sampleCount");
+    SampleCount = iConfig.getParameter<unsigned int>("SampleCount");
     AlgorithmType = iConfig.getParameter<unsigned int>("AlgorithmType");
     isVertexConstraint = iConfig.getParameter<bool>("isVertexConstraint");
     isContinuousFilter = iConfig.getParameter<bool>("isContinuousFilter");
@@ -223,7 +223,7 @@ void SimRPCSeedPattern::mapRecHittoSimHit() {
 
 void SimRPCSeedPattern::measureRecHitandMagneticField() {
     // Get distance and magnetice field sampling information, recHit's position is not the border of Chamber and Iron
-    sampleMagneticField.clear();
+    SampleMagneticField.clear();
     DistanceXY = 0;
     IntervalMagneticFlux.clear();
     for(ConstMuonRecHitContainer::const_iterator RecHitIter = theRecHits.begin(); RecHitIter != (theRecHits.end()-1); RecHitIter++) {
@@ -231,23 +231,23 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
         GlobalPoint LastPosition = (*(RecHitIter+1))->globalPosition();
         DistanceXY += ((GlobalVector)(LastPosition - FirstPosition)).perp();
         DistanceZ += ((GlobalVector)(LastPosition - FirstPosition)).z();
-        GlobalPoint* samplePosition = new GlobalPoint[sampleCount];
-        double dX = (LastPosition.x() - FirstPosition.x()) / (sampleCount + 1);
-        double dY = (LastPosition.y() - FirstPosition.y()) / (sampleCount + 1);
-        double dZ = (LastPosition.z() - FirstPosition.z()) / (sampleCount + 1);
+        GlobalPoint* SamplePosition = new GlobalPoint[SampleCount];
+        double dX = (LastPosition.x() - FirstPosition.x()) / (SampleCount + 1);
+        double dY = (LastPosition.y() - FirstPosition.y()) / (SampleCount + 1);
+        double dZ = (LastPosition.z() - FirstPosition.z()) / (SampleCount + 1);
         bool isLowMagneticField = true;
-        for(unsigned int index = 0; index < sampleCount; index++) {
-            samplePosition[index] = GlobalPoint((FirstPosition.x()+dX*(index+1)), (FirstPosition.y()+dY*(index+1)), (FirstPosition.z()+dZ*(index+1)));
-            GlobalVector TempMagneticField = theMagneticField->inTesla(samplePosition[index]);
+        for(unsigned int index = 0; index < SampleCount; index++) {
+            SamplePosition[index] = GlobalPoint((FirstPosition.x()+dX*(index+1)), (FirstPosition.y()+dY*(index+1)), (FirstPosition.z()+dZ*(index+1)));
+            GlobalVector TempMagneticField = theMagneticField->inTesla(SamplePosition[index]);
             // for endcap the magnetic field could be complex so use mag() intead of z() while checking
             if(fabs(TempMagneticField.z()) > MagnecticFieldThreshold)
                 isLowMagneticField = false;
             if(debug) cout << "Sampling magnetic field : " << TempMagneticField << endl;
-            sampleMagneticField.push_back(TempMagneticField);
+            SampleMagneticField.push_back(TempMagneticField);
         }
         if(debug) cout << "IntervalMagneticFlux(0-high,1-low): " << isLowMagneticField << endl;
         IntervalMagneticFlux.push_back(isLowMagneticField);
-        delete [] samplePosition;
+        delete [] SamplePosition;
     }
     int IntervalIndex = findIntervalIndex();
     if(IntervalIndex > 0) {
@@ -300,20 +300,20 @@ int SimRPCSeedPattern::findIntervalIndex() {
 
 GlobalVector SimRPCSeedPattern::getMeanMagneticField(const int IntervalIndex) {
     GlobalVector theMagneticField(0, 0, 0);
-    unsigned int sampleNumber = 0;
-    if(IntervalIndex < 0 || sampleCount <= 0)
+    unsigned int SampleNumber = 0;
+    if(IntervalIndex < 0 || SampleCount <= 0)
         return theMagneticField;
-    for(unsigned int i = IntervalIndex*sampleCount; i < (IntervalIndex+1)*sampleCount; i++) {
-        GlobalVector TempMagnaeticField = sampleMagneticField[i];
+    for(unsigned int i = IntervalIndex*SampleCount; i < (IntervalIndex+1)*SampleCount; i++) {
+        GlobalVector TempMagnaeticField = SampleMagneticField[i];
         if(TempMagnaeticField.mag() > MagnecticFieldThreshold) {
             theMagneticField += TempMagnaeticField;
-            sampleNumber++;
+            SampleNumber++;
         }
     }
-    if(sampleNumber == 0)
-        sampleNumber = 1.;
+    if(SampleNumber == 0)
+        SampleNumber = 1.;
 
-    return theMagneticField / sampleNumber;
+    return theMagneticField / SampleNumber;
 }
 
 int SimRPCSeedPattern::checkAlgorithm() {
