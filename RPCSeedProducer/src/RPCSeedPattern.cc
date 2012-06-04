@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/03 21:49:04 $
- *  $Revision: 1.8 $
+ *  $Date: 2012/06/03 22:07:39 $
+ *  $Revision: 1.9 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -623,6 +623,7 @@ GlobalVector RPCSeedPattern::correctPhiatRef() {
     }
     double CorrectedPhi = LinkedPhi - BendingPhiCorrection;
     double CorrectedTheta = PI/2.;
+    if(debug) cout << "LinkedPhi: " << LinkedPhi << ", CorrectedPhi: " << CorrectedPhi << endl;
     GlobalVector RefPtVector(GlobalVector::Polar(CorrectedTheta, CorrectedPhi, 1.) );
     return RefPtVector;
 }
