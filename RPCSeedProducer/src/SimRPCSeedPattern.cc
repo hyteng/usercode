@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/03 21:49:04 $
- *  $Revision: 1.7 $
+ *  $Date: 2012/06/05 09:07:32 $
+ *  $Revision: 1.8 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -410,7 +410,7 @@ void SimRPCSeedPattern::createPattern() {
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
     }
     if(Algorithm == 2) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        //BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
         BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
@@ -422,7 +422,7 @@ void SimRPCSeedPattern::createPattern() {
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
     }
     if(Algorithm == 4) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
+        //BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
         BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
         BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
         BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
