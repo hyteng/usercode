@@ -31,6 +31,10 @@
 #define BarrelDoubleSegmentCode2 31 // 011111
 #endif
 
+#ifndef BarrelDoubleSegmentCode3
+#define BarrelDoubleSegmentCode3 57 // 111001
+#endif
+
 #ifndef BarrelDoubleSegmentOptionalCode
 #define BarrelDoubleSegmentOptionalCode 48 // 110000
 #endif
