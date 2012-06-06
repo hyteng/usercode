@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.5 2012/06/06 02:31:51 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.6 2012/06/06 03:30:46 hyteng Exp $
 //
 //
 
@@ -451,13 +451,10 @@ void RPCBendingAnalyzer::fillSample(unsigned int Index) {
 
 void RPCBendingAnalyzer::fillBendingInfo() {
 
-    vector<GlobalPoint> simHitPosition;
-    vector<GlobalVector> simHitMomentum;
-    vector<GlobalPoint> recHitPosition;
+    GlobalPoint simHitPosition[10];
+    GlobalVector simHitMomentum[10];
+    GlobalPoint recHitPosition[10];
 
-    simHitPosition.clear();
-    simHitMomentum.clear();
-    recHitPosition.clear();
     for(unsigned int i = 0; i < RPCLayer.size(); i++) {
         if(SampleLayer[i] >= 0) {
             int theDetUnitId = simHitSample[RPCLayer[i]].detUnitId();
@@ -465,14 +462,14 @@ void RPCBendingAnalyzer::fillBendingInfo() {
             const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
             Local3DPoint LocalPosition = simHitSample[RPCLayer[i]].localPosition();   
             GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
-            simHitPosition.push_back(GlobalPosition);
+            simHitPosition[RPCLayer[i]] = GlobalPosition;
             LocalVector LocalMomentum = simHitSample[RPCLayer[i]].momentumAtEntry();
             GlobalVector GlobalMomentum = theRPCRoll->toGlobal(LocalMomentum);
-            simHitMomentum.push_back(GlobalMomentum);
+            simHitMomentum[RPCLayer[i]] = GlobalMomentum;
         }
         else {
-            simHitPosition.push_back(GlobalPoint(0,0,0));
-            simHitMomentum.push_back(GlobalVector(0,0,0));
+            simHitPosition[RPCLayer[i]] = GlobalPoint(0,0,0);
+            simHitMomentum[RPCLayer[i]] = GlobalVector(0,0,0);
         }
     }
 
@@ -485,15 +482,15 @@ void RPCBendingAnalyzer::fillBendingInfo() {
             const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
             LocalPoint LocalPosition = recHitSample[RPCLayer[i]].localPosition();  
             GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
-            recHitPosition.push_back(GlobalPosition);
+            recHitPosition[RPCLayer[i]] = GlobalPosition;
             Eta[RPCLayer[i]] = GlobalPosition.eta();
         }
         else {
             ClusterSize[RPCLayer[i]] = -1;
             BX[RPCLayer[i]] = 0;
             simPtatRef[RPCLayer[i]] = 0.;
-            Eta[RPCLayer[i]] = 0;
-            recHitPosition.push_back(GlobalPoint(0,0,0));
+            Eta[RPCLayer[i]] = 0.;
+            recHitPosition[RPCLayer[i]] = GlobalPoint(0,0,0);
         }
     }
 
