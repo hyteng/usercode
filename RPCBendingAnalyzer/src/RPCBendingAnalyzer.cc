@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.4 2012/06/06 02:21:16 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.5 2012/06/06 02:31:51 hyteng Exp $
 //
 //
 
@@ -295,7 +295,9 @@ void RPCBendingAnalyzer::getTracksInfo() {
         else
             simTrackvalid = 0;
 
-        if(debug) cout << "For simTrack " << simTrackIndex << " valid is " << simTrackvalid << ". Core for this track is " << code << endl;
+        if(fabs(simTrackMomentumEta) < 0.3 && fabs(simTrackMomentumEta) > 0.2) {
+        if(debug) cout << "For simTrack " << simTrackIndex << " valid is " << simTrackvalid << ". Core for this track is " << code << ", recHitNumber " << recHitNumber << endl;
+        }
 
         if(simTrackvalid == 1)
             analyzeBending();
@@ -411,6 +413,7 @@ void RPCBendingAnalyzer::fillSample(unsigned int Index) {
     }
 
     unsigned int simHitIndex = 0;
+    SampleLayer[Index] = -1;
     for(vector<PSimHit>::const_iterator simHitIter = simHitsforTrack.begin(); simHitIter != simHitsforTrack.end(); simHitIter++) {
         int DetUnitId = simHitIter->detUnitId();
         RPCDetId sampleRPCDetId(DetUnitId);
@@ -436,7 +439,7 @@ void RPCBendingAnalyzer::fillSample(unsigned int Index) {
         simHitIndex++;
     }
 
-    if(simHitIndex == 0) {
+    if(SampleLayer[Index] == -1) {
         SampleLayer[Index] = -1*(int)RPCLayer[Index];
         if(Index < (RPCLayerSize - 1))
             fillSample(Index+1);
