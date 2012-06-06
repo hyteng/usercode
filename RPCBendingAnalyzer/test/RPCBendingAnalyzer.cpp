@@ -23,14 +23,16 @@
 #define Chi2TH 5.0
 #define FitOverRangeLimit 3
 #define StatisticTH 100.0
+#define validSampleTH 3
 
 extern TStyle* gStyle;
 
 using namespace std;
 
+// old barrel layer index:0-5, new: 1-6
 class BendingPhiIndexType {
     public:
-        BendingPhiIndexType() {m[0] = 0; m[1] = 0; m[2] = 0; m[3] = 0;};
+        BendingPhiIndexType() {m[0] = 1; m[1] = 2; m[2] = 3; m[3] = 4;};
         BendingPhiIndexType(int a0, int a1, int a2, int a3) {m[0] = a0; m[1] = a1; m[2] = a2; m[3] = a3;};
         int m[4];
 };
@@ -56,13 +58,14 @@ class RPCBendingAnalyzer {
         double simTrackMomentumEta;
         int simTrackCharge;
         int simTrackvalid;
-        double simHitBendingPhi[6][6];
-        double simPtBendingPhi[6];
-        double recHitBendingPhi[6][6];
-        unsigned int RPCBendingLayer[6];
-        int ClusterSize[6];
-        int BX[6];
-        double simPtatRef[6];
+        int SampleLayer[10];
+        double simHitBendingPhi[10][10];
+        double simPtBendingPhi[10];
+        double recHitBendingPhi[10][10];
+        unsigned int RPCBendingLayer[10];
+        int ClusterSize[10];
+        int BX[10];
+        double simPtatRef[10];
 
         //bool debug;
         TFile* File0;
@@ -96,8 +99,9 @@ class RPCBendingAnalyzer {
         string OutputFix;
 
         std::vector<BendingPhiIndexType> HistFilter;
-        TH2D* simHitBendingPhiHist[3][4][4][6];
-        TH2D* recHitBendingPhiHist[3][4][4][6];
+        int validSample;
+        TH2D* simHitBendingPhiHist[4][5][6][7];
+        TH2D* recHitBendingPhiHist[4][5][6][7];
         TH2D* simHitBendingPhiMaxHist;
         TH2D* recHitBendingPhiMaxHist;
         TH2D* recHitBendingPhiMinHist;
@@ -194,6 +198,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     Tree0->SetBranchAddress("simTrackMomentumEta", &simTrackMomentumEta);
     Tree0->SetBranchAddress("simTrackCharge", &simTrackCharge);
     Tree0->SetBranchAddress("simTrackvalid", &simTrackvalid);
+    Tree0->SetBranchAddress("SampleLayer", &SampleLayer);
     Tree0->SetBranchAddress("simHitBendingPhi", simHitBendingPhi);
     Tree0->SetBranchAddress("simPtBendingPhi", simPtBendingPhi);
     Tree0->SetBranchAddress("recHitBendingPhi", recHitBendingPhi);
@@ -204,13 +209,13 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
 
     HistFilter.clear();
     if(PatternType%10 == 0) {
-        HistFilter.push_back(BendingPhiIndexType(0,1,2,3));
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        HistFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        HistFilter.push_back(BendingPhiIndexType(2,3,3,5));
-        HistFilter.push_back(BendingPhiIndexType(0,0,0,1));
-        HistFilter.push_back(BendingPhiIndexType(2,2,2,3));
+        HistFilter.push_back(BendingPhiIndexType(1,2,3,4));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,5));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,6));
+        HistFilter.push_back(BendingPhiIndexType(3,4,4,5));
+        HistFilter.push_back(BendingPhiIndexType(3,4,4,6));
+        HistFilter.push_back(BendingPhiIndexType(1,1,1,2));
+        HistFilter.push_back(BendingPhiIndexType(3,3,3,4));
 
         int Filter0[] = {0,2,4};
         int Filter1[] = {2,4,5,6}; // kick out 0
@@ -229,14 +234,14 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
                 BendingPhiMaxFilterMap[i][BendingPhiMaxFilter[i][j]] = -1;
     }
     if(PatternType%10 == 1) {
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,2));
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,3));
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        HistFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        HistFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        HistFilter.push_back(BendingPhiIndexType(2,3,3,5));
-        HistFilter.push_back(BendingPhiIndexType(0,0,0,1));
-        HistFilter.push_back(BendingPhiIndexType(2,2,2,3));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,3));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,4));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,5));
+        HistFilter.push_back(BendingPhiIndexType(1,2,2,6));
+        HistFilter.push_back(BendingPhiIndexType(3,4,4,5));
+        HistFilter.push_back(BendingPhiIndexType(3,4,4,6));
+        HistFilter.push_back(BendingPhiIndexType(1,1,1,2));
+        HistFilter.push_back(BendingPhiIndexType(3,3,3,4));
 
         int Filter0[] = {2,3};
         int Filter1[] = {2,3,6};
@@ -262,12 +267,12 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
 
     }
     if(PatternType%10 == 2) {
-        HistFilter.push_back(BendingPhiIndexType(0,3,3,4));
-        HistFilter.push_back(BendingPhiIndexType(0,3,3,5));
-        HistFilter.push_back(BendingPhiIndexType(0,4,4,5));
-        HistFilter.push_back(BendingPhiIndexType(0,0,0,3));
-        HistFilter.push_back(BendingPhiIndexType(0,0,0,4));
-        HistFilter.push_back(BendingPhiIndexType(0,0,0,5));
+        HistFilter.push_back(BendingPhiIndexType(1,4,4,5));
+        HistFilter.push_back(BendingPhiIndexType(1,4,4,6));
+        HistFilter.push_back(BendingPhiIndexType(1,5,5,6));
+        HistFilter.push_back(BendingPhiIndexType(1,1,1,4));
+        HistFilter.push_back(BendingPhiIndexType(1,1,1,5));
+        HistFilter.push_back(BendingPhiIndexType(1,1,1,6));
 
         int Filter0[] = {0,1,2};
         int Filter1[] = {3,4,5};
@@ -359,7 +364,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
             //if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) < 0.)
             //continue;
 
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 0 || PatternType == 10) {
@@ -383,7 +388,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                             continue;
                         }
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 20 || PatternType == 30) {
@@ -406,7 +411,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                             continue;
                         }
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 1 || PatternType == 11) {
@@ -425,7 +430,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                         if(debug) cout << "block by Filter." << endl;
                         continue;
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 21 || PatternType == 31) {
@@ -444,7 +449,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                         if(debug) cout << "block by Filter." << endl;
                         continue;
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 41 || PatternType == 51) {
@@ -463,7 +468,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                         if(debug) cout << "block by Filter." << endl;
                         continue;
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         if(PatternType == 61 || PatternType == 71) {
@@ -482,7 +487,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                         if(debug) cout << "block by Filter." << endl;
                         continue;
                     }
-            theRefPt = simPtatRef[2] * (double)simTrackCharge;
+            theRefPt = simPtatRef[3] * (double)simTrackCharge;
         }
 
         if(PatternType == 2 || PatternType == 12) {
@@ -504,7 +509,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                             continue;
                         }
                     }
-            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+            theRefPt = simPtatRef[1] * (double)simTrackCharge;
         }
 
         fillBendingPhiHist();
@@ -527,6 +532,7 @@ void RPCBendingAnalyzer::getBendingPhiMax() {
     simBendingPhiMax = 0.;
     recBendingPhiMax = 0.;
     recBendingPhiMin = 10.;
+    validSample = 1;
 
     double TempsimBendingPhi;
     double TemprecBendingPhi;
@@ -550,24 +556,31 @@ void RPCBendingAnalyzer::getBendingPhiMax() {
         TempIndexL << l;
         string IndexL = TempIndexL.str();
 
-        TempsimBendingPhi = getdPhi(simHitBendingPhi[k][l], simHitBendingPhi[i][j]);
-        TemprecBendingPhi = getdPhi(recHitBendingPhi[k][l], recHitBendingPhi[i][j]);
-        if(i == j) {
-            TempsimBendingPhi *= -1.;
-            TemprecBendingPhi *= -1.;
+        if(ClusterSize[i] > 0 && ClusterSize[j] > 0 && ClusterSize[k] > 0 && ClusterSize[l] > 0) {
+            TempsimBendingPhi = getdPhi(simHitBendingPhi[k][l], simHitBendingPhi[i][j]);
+            TemprecBendingPhi = getdPhi(recHitBendingPhi[k][l], recHitBendingPhi[i][j]);
+            if(i == j) {
+                TempsimBendingPhi *= -1.;
+                TemprecBendingPhi *= -1.;
+            }
+            if(fabs(simBendingPhiMax) < fabs(TempsimBendingPhi))
+                simBendingPhiMax = TempsimBendingPhi;
+            if(fabs(recBendingPhiMax) < fabs(TemprecBendingPhi))
+                recBendingPhiMax = TemprecBendingPhi;
+            if(fabs(recBendingPhiMin) > fabs(TemprecBendingPhi))
+                recBendingPhiMin = TemprecBendingPhi;
         }
-        if(fabs(simBendingPhiMax) < fabs(TempsimBendingPhi))
-            simBendingPhiMax = TempsimBendingPhi;
-        if(fabs(recBendingPhiMax) < fabs(TemprecBendingPhi))
-            recBendingPhiMax = TemprecBendingPhi;
-        if(fabs(recBendingPhiMin) > fabs(TemprecBendingPhi))
-            recBendingPhiMin = TemprecBendingPhi;
+        else
+            validSample = -1;
     }
 }
 
 void RPCBendingAnalyzer::fillBendingPhiHist() {
 
     if(debug) cout << "filling hists." << endl;
+
+    if(validSample == -1)
+        return;
 
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
         if(BendingPhiMaxFilterMap[PatternType/10][(int)Index] != -1)
@@ -588,7 +601,7 @@ void RPCBendingAnalyzer::fillBendingPhiHist() {
         std::stringstream TempIndexL;
         TempIndexL << l;
         string IndexL = TempIndexL.str();
-
+        
         double simHitBendingPhiTemp = getdPhi(simHitBendingPhi[k][l], simHitBendingPhi[i][j]);
         double recHitBendingPhiTemp = getdPhi(recHitBendingPhi[k][l], recHitBendingPhi[i][j]);
         if(debug) cout << "simHitBendingPhiTemp: " << simHitBendingPhiTemp << ", recHitBendingPhiTemp: " << recHitBendingPhiTemp << endl;
