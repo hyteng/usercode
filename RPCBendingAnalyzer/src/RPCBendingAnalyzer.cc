@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.3 2012/06/06 01:55:46 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.4 2012/06/06 02:21:16 hyteng Exp $
 //
 //
 
@@ -96,6 +96,7 @@ class RPCBendingAnalyzer : public EDAnalyzer {
 
         bool debug;
         unsigned int codeTH;
+        unsigned int recHitNumberTH;
         vector<PSimHit> simHitsforTrack;
         vector<unsigned int> recHitNumberforsimHits;
         vector< vector<RPCRecHit> > RPCrecHitsfromTrack;
@@ -144,6 +145,7 @@ RPCBendingAnalyzer::RPCBendingAnalyzer(const ParameterSet& iConfig) {
     RPCLayer = iConfig.getParameter< vector<unsigned int> >("RPCLayer");
     debug = iConfig.getUntrackedParameter<bool>("debug");
     codeTH = iConfig.getUntrackedParameter<unsigned int>("codeTH");
+    recHitNumberTH = iConfig.getUntrackedParameter<unsigned int>("recHitNumberTH");
     theRootFileName = iConfig.getUntrackedParameter<string>("theRootFileName", "RPCValidationTree.root");
     // Booking histogrqam
     theFile = new TFile(theRootFileName.c_str(), "recreate");
@@ -278,16 +280,17 @@ void RPCBendingAnalyzer::getTracksInfo() {
 
         // code for checking layer occupancy
         unsigned int code = 0;
-        //unsigned int recHitNumber = 0;
+        unsigned int recHitNumber = 0;
         for(unsigned int RPCLayerIndex = 0; RPCLayerIndex < (RPCBarrelLayerNumber+RPCEndcapLayerNumber); RPCLayerIndex++) {
             if(recHitNumberinRPCLayer[RPCLayerIndex] != 0) {
                 unsigned value = 1;
+                recHitNumber++;
                 for(unsigned int i = 0; i < RPCLayerIndex; i++)
                     value *= 2;
                 code += value;
             }
         }
-        if(((int)code & (int)codeTH) == (int)codeTH)
+        if(((int)code & (int)codeTH) == (int)codeTH && recHitNumber >= recHitNumberTH)
             simTrackvalid = 1;
         else
             simTrackvalid = 0;
