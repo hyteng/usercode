@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.2 2012/04/16 12:21:59 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.3 2012/06/06 01:55:46 hyteng Exp $
 //
 //
 
@@ -99,8 +99,8 @@ class RPCBendingAnalyzer : public EDAnalyzer {
         vector<PSimHit> simHitsforTrack;
         vector<unsigned int> recHitNumberforsimHits;
         vector< vector<RPCRecHit> > RPCrecHitsfromTrack;
-        RPCRecHit recHitSample[6];
-        PSimHit simHitSample[6];
+        RPCRecHit recHitSample[10];
+        PSimHit simHitSample[10];
 
         string theRootFileName;
         TFile *theFile;
@@ -113,15 +113,15 @@ class RPCBendingAnalyzer : public EDAnalyzer {
         double simTrackMomentumEta;
         int simTrackCharge;
         int simTrackvalid;
-        int SampleLayer[6];
-        double simHitBendingPhi[6][6];
-        double simPtBendingPhi[6];
-        double recHitBendingPhi[6][6];
-        unsigned int RPCBendingLayer[6];
-        int ClusterSize[6];
-        int BX[6];
-        double Eta[6];
-        double simPtatRef[6]; // Ref recHit is in layer1(RB1out) for Barrel
+        int SampleLayer[10];
+        double simHitBendingPhi[10][10];
+        double simPtBendingPhi[10];
+        double recHitBendingPhi[10][10];
+        unsigned int RPCBendingLayer[10];
+        int ClusterSize[10];
+        int BX[10];
+        double Eta[10];
+        double simPtatRef[10]; // Ref recHit is in layer1(RB1out) for Barrel
 };
 
 //
@@ -156,15 +156,15 @@ RPCBendingAnalyzer::RPCBendingAnalyzer(const ParameterSet& iConfig) {
     ExTree->Branch("simTrackMomentumEta", &simTrackMomentumEta, "simTrackMomentumEta/D");
     ExTree->Branch("simTrackCharge", &simTrackCharge, "simTrackCharge/I");
     ExTree->Branch("simTrackvalid", &simTrackvalid, "simTrackvalid/I");
-    ExTree->Branch("SampleLayer", SampleLayer, "SampleLayer[6]/I");
-    ExTree->Branch("simHitBendingPhi", simHitBendingPhi, "simHitBendingPhi[6][6]/D");
-    ExTree->Branch("simPtBendingPhi", simPtBendingPhi, "simPtBendingPhi[6]/D");
-    ExTree->Branch("recHitBendingPhi", recHitBendingPhi, "recHitBendingPhi[6][6]/D");
-    ExTree->Branch("RPCBendingLayer", RPCBendingLayer, "RPCBendingLayer[6]/i");
-    ExTree->Branch("simPtatRef", simPtatRef, "simPtatRef[6]/D");
-    ExTree->Branch("ClusterSize", ClusterSize, "ClusterSize[6]/I");
-    ExTree->Branch("BX", BX, "BX[6]/I");
-    ExTree->Branch("Eta", Eta, "Eta[6]/D");
+    ExTree->Branch("SampleLayer", SampleLayer, "SampleLayer[10]/I");
+    ExTree->Branch("simHitBendingPhi", simHitBendingPhi, "simHitBendingPhi[10][10]/D");
+    ExTree->Branch("simPtBendingPhi", simPtBendingPhi, "simPtBendingPhi[10]/D");
+    ExTree->Branch("recHitBendingPhi", recHitBendingPhi, "recHitBendingPhi[10][10]/D");
+    ExTree->Branch("RPCBendingLayer", RPCBendingLayer, "RPCBendingLayer[10]/i");
+    ExTree->Branch("simPtatRef", simPtatRef, "simPtatRef[10]/D");
+    ExTree->Branch("ClusterSize", ClusterSize, "ClusterSize[10]/I");
+    ExTree->Branch("BX", BX, "BX[10]/I");
+    ExTree->Branch("Eta", Eta, "Eta[10]/D");
     // Set simTrack index
     EventNumber = 0;
 }
@@ -490,14 +490,6 @@ void RPCBendingAnalyzer::fillBendingInfo() {
             recHitPosition.push_back(GlobalPoint(0,0,0));
         }
     }
-
-    /*
-       if(RPCLayer.size() == 5) {
-       ClusterSize[5] = 1;
-       BX[5] = 0;
-       }
-     */
-
 
     for(unsigned int i = 0; i < RPCLayer.size(); i++) {
         if(SampleLayer[i] > 0) {
