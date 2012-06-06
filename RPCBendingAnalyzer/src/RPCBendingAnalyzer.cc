@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.1 2012/04/16 12:03:39 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.2 2012/04/16 12:21:59 hyteng Exp $
 //
 //
 
@@ -80,7 +80,7 @@ class RPCBendingAnalyzer : public EDAnalyzer {
         void analyzeBending();
         void fillSample(unsigned int Index);
         void fillBendingInfo();
-        
+
         // ----------member data ---------------------------
         InputTag simHitTag_;
         InputTag simTrackTag_;
@@ -113,6 +113,7 @@ class RPCBendingAnalyzer : public EDAnalyzer {
         double simTrackMomentumEta;
         int simTrackCharge;
         int simTrackvalid;
+        int SampleLayer[6];
         double simHitBendingPhi[6][6];
         double simPtBendingPhi[6];
         double recHitBendingPhi[6][6];
@@ -155,6 +156,7 @@ RPCBendingAnalyzer::RPCBendingAnalyzer(const ParameterSet& iConfig) {
     ExTree->Branch("simTrackMomentumEta", &simTrackMomentumEta, "simTrackMomentumEta/D");
     ExTree->Branch("simTrackCharge", &simTrackCharge, "simTrackCharge/I");
     ExTree->Branch("simTrackvalid", &simTrackvalid, "simTrackvalid/I");
+    ExTree->Branch("SampleLayer", SampleLayer, "SampleLayer[6]/I");
     ExTree->Branch("simHitBendingPhi", simHitBendingPhi, "simHitBendingPhi[6][6]/D");
     ExTree->Branch("simPtBendingPhi", simPtBendingPhi, "simPtBendingPhi[6]/D");
     ExTree->Branch("recHitBendingPhi", recHitBendingPhi, "recHitBendingPhi[6][6]/D");
@@ -267,9 +269,9 @@ void RPCBendingAnalyzer::getTracksInfo() {
                 //RPCrecHitsfromTrack.push_back(*recHitIter);
                 RPCDetId theRPCDetId = recHitIter->rpcId();
                 int theRPCStationLayer = getRPCLayer(theRPCDetId);
-                // If StationLayer<0 bending and codeTH will not use this recHit but still save into RPCrecHitsforTrack
-                if(theRPCStationLayer >= 0)
-                    recHitNumberinRPCLayer[theRPCStationLayer] += 1;
+                // If StationLayer<0 bending and codeTH will not use this recHit but still save into RPCrecHitsforTrack, here the getRPCLayer() will return 1-6 for barrel and 7-9 for endcap
+                if(theRPCStationLayer >= 1)
+                    recHitNumberinRPCLayer[theRPCStationLayer-1] += 1;
             }
             recHitNumberforsimHits.push_back(tempRPCrecHits.size());
         }
@@ -373,17 +375,17 @@ int RPCBendingAnalyzer::getRPCLayer(const RPCDetId& theRPCDetId) {
     int RPCStationLayer = -1;
     if(Region == 0) {
         if(Station >= 3) // RB3,RB4
-            RPCStationLayer = Station + 1;
+            RPCStationLayer = Station + 2;
         else {
             if(Station == 2) // RB2in/put
-                RPCStationLayer = Layer + 1;
+                RPCStationLayer = Layer + 2;
             else // RB1in/out
-                RPCStationLayer = Layer - 1;
+                RPCStationLayer = Layer;
         }
     }
     else { 
         // Before endcap double layer implement, RE1-4
-        RPCStationLayer = Station + 5;
+        RPCStationLayer = Station + 6;
         // After endcap double layer implement, RE2in/out may included
     }
     if(debug) cout << "RPCDet: " << theRPCName << " , on RPCStationLayer: " << RPCStationLayer << endl;
@@ -412,14 +414,15 @@ void RPCBendingAnalyzer::fillSample(unsigned int Index) {
         if(debug) cout << "simHit: ";
         int theRPCStationLayer1 = getRPCLayer(sampleRPCDetId);
         if(theRPCStationLayer1 == (int)RPCLayer[Index]) {
-            simHitSample[Index] = *simHitIter;
+            SampleLayer[Index] = (int)RPCLayer[Index];
+            simHitSample[RPCLayer[Index]] = *simHitIter;
             vector<RPCRecHit> theRPCrecHits = RPCrecHitsfromTrack[simHitIndex];
             for(vector<RPCRecHit>::const_iterator recHitIter = theRPCrecHits.begin(); recHitIter != theRPCrecHits.end(); recHitIter++) {
                 RPCDetId RPCId = recHitIter->rpcId();
                 if(debug) cout << "recHit: ";
                 int theRPCStationLayer2 = getRPCLayer(sampleRPCDetId);
                 if(theRPCStationLayer2 == (int)RPCLayer[Index]) {
-                    recHitSample[Index] = *recHitIter;
+                    recHitSample[RPCLayer[Index]] = *recHitIter;
                     if(Index < (RPCLayerSize - 1))
                         fillSample(Index+1);
                     else
@@ -429,6 +432,15 @@ void RPCBendingAnalyzer::fillSample(unsigned int Index) {
         }
         simHitIndex++;
     }
+
+    if(simHitIndex == 0) {
+        SampleLayer[Index] = -1*(int)RPCLayer[Index];
+        if(Index < (RPCLayerSize - 1))
+            fillSample(Index+1);
+        else
+            fillBendingInfo();
+    }
+
 }
 
 void RPCBendingAnalyzer::fillBendingInfo() {
@@ -441,27 +453,42 @@ void RPCBendingAnalyzer::fillBendingInfo() {
     simHitMomentum.clear();
     recHitPosition.clear();
     for(unsigned int i = 0; i < RPCLayer.size(); i++) {
-        int theDetUnitId = simHitSample[i].detUnitId();
-        RPCDetId theRPCDetId(theDetUnitId);
-        const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
-        Local3DPoint LocalPosition = simHitSample[i].localPosition();   
-        GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
-        simHitPosition.push_back(GlobalPosition);
-        LocalVector LocalMomentum = simHitSample[i].momentumAtEntry();
-        GlobalVector GlobalMomentum = theRPCRoll->toGlobal(LocalMomentum);
-        simHitMomentum.push_back(GlobalMomentum);
+        if(SampleLayer[i] >= 0) {
+            int theDetUnitId = simHitSample[RPCLayer[i]].detUnitId();
+            RPCDetId theRPCDetId(theDetUnitId);
+            const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
+            Local3DPoint LocalPosition = simHitSample[RPCLayer[i]].localPosition();   
+            GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
+            simHitPosition.push_back(GlobalPosition);
+            LocalVector LocalMomentum = simHitSample[RPCLayer[i]].momentumAtEntry();
+            GlobalVector GlobalMomentum = theRPCRoll->toGlobal(LocalMomentum);
+            simHitMomentum.push_back(GlobalMomentum);
+        }
+        else {
+            simHitPosition.push_back(GlobalPoint(0,0,0));
+            simHitMomentum.push_back(GlobalVector(0,0,0));
+        }
     }
 
     for(unsigned int i = 0; i < RPCLayer.size(); i++) {
-        ClusterSize[i] = recHitSample[i].clusterSize();
-        BX[i] = recHitSample[i].BunchX();
-        simPtatRef[i] = simHitMomentum[i].perp();
-        RPCDetId theRPCDetId = recHitSample[i].rpcId();
-        const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
-        LocalPoint LocalPosition = recHitSample[i].localPosition();  
-        GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
-        recHitPosition.push_back(GlobalPosition);
-        Eta[i] = GlobalPosition.eta();
+        if(SampleLayer[i] >= 0) {
+            ClusterSize[RPCLayer[i]] = recHitSample[RPCLayer[i]].clusterSize();
+            BX[RPCLayer[i]] = recHitSample[RPCLayer[i]].BunchX();
+            simPtatRef[RPCLayer[i]] = simHitMomentum[RPCLayer[i]].perp();
+            RPCDetId theRPCDetId = recHitSample[RPCLayer[i]].rpcId();
+            const GeomDetUnit *theRPCRoll = theRPCGeometry->idToDetUnit(theRPCDetId);
+            LocalPoint LocalPosition = recHitSample[RPCLayer[i]].localPosition();  
+            GlobalPoint GlobalPosition = theRPCRoll->toGlobal(LocalPosition);
+            recHitPosition.push_back(GlobalPosition);
+            Eta[RPCLayer[i]] = GlobalPosition.eta();
+        }
+        else {
+            ClusterSize[RPCLayer[i]] = -1;
+            BX[RPCLayer[i]] = 0;
+            simPtatRef[RPCLayer[i]] = 0.;
+            Eta[RPCLayer[i]] = 0;
+            recHitPosition.push_back(GlobalPoint(0,0,0));
+        }
     }
 
     /*
@@ -473,12 +500,16 @@ void RPCBendingAnalyzer::fillBendingInfo() {
 
 
     for(unsigned int i = 0; i < RPCLayer.size(); i++) {
-        simPtBendingPhi[i] = simHitMomentum[i].phi().value();
-        simHitBendingPhi[i][i] = simHitPosition[i].phi().value();
-        recHitBendingPhi[i][i] = recHitPosition[i].phi().value();
-        for(unsigned int j = i+1; j < RPCLayer.size(); j++) {
-            simHitBendingPhi[i][j] = ((GlobalVector)(simHitPosition[j] - simHitPosition[i])).phi().value();
-            recHitBendingPhi[i][j] = ((GlobalVector)(recHitPosition[j] - recHitPosition[i])).phi().value();
+        if(SampleLayer[i] > 0) {
+            simPtBendingPhi[RPCLayer[i]] = simHitMomentum[RPCLayer[i]].phi().value();
+            simHitBendingPhi[RPCLayer[i]][RPCLayer[i]] = simHitPosition[RPCLayer[i]].phi().value();
+            recHitBendingPhi[RPCLayer[i]][RPCLayer[i]] = recHitPosition[RPCLayer[i]].phi().value();
+            for(unsigned int j = i+1; j < RPCLayer.size(); j++) {
+                if(SampleLayer[j] > 0) {
+                    simHitBendingPhi[RPCLayer[i]][RPCLayer[j]] = ((GlobalVector)(simHitPosition[RPCLayer[j]] - simHitPosition[RPCLayer[i]])).phi().value();
+                    recHitBendingPhi[RPCLayer[i]][RPCLayer[j]] = ((GlobalVector)(recHitPosition[RPCLayer[j]] - recHitPosition[RPCLayer[i]])).phi().value();
+                }
+            }
         }
     }
     ExTree->Fill();
