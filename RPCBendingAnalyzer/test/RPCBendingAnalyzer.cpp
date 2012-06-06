@@ -393,7 +393,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -435,7 +435,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -454,7 +454,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -473,7 +473,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -491,7 +491,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
