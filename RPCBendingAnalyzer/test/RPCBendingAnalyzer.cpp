@@ -13,14 +13,14 @@
 #include "TStyle.h"
 #include <algorithm>
 
-#define debug 0
+#define debug 1
 #define recorde 1
 #define F2PThresold 1.5
-#define C2RThresold 5.0
+#define C2RThresold 4.0
 #define PI 3.1415926
 #define PhiBins 628
 #define WorkPtRange 40.0
-#define Chi2TH 1.6
+#define Chi2TH 5.0
 #define FitOverRangeLimit 3
 #define StatisticTH 100.0
 
@@ -121,7 +121,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     applyFilter = applyFilterPara;
     BendingWiseCheck = BendingWiseCheckPara;
     theDrawOption = DrawOptionPara;
-    
+
     RatoThresoldF2P = F2PThresold;
     RatoThresoldC2R = C2RThresold;
 
@@ -151,7 +151,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
         BendingWiseFix = "Reverse_";
     if(BendingWiseCheck > 0.)
         BendingWiseFix = "Coverse_";
-    if(BendingWiseCheck = 0.)
+    if(BendingWiseCheck == 0.)
         BendingWiseFix = "Both_";
 
     if(SegmentBendingCut == 0.)
@@ -178,7 +178,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
         CutFix += "Filter_";
 
     FinalOutput = theDrawOption + "_" + PtFix + PatternFix + BendingWiseFix + CutFix;
-    OutputFix = ".png";
+    OutputFix = ".eps";
 
     //string theFileName = "rfio:/castor/cern.ch/user/h/hyteng/rpcseed/validation/Pt3.0-PtScale.0Gev_Eta-1.0-1.0_recBending362/recBA_key_merge/" + FileName;
     FileName = FileNamePara;
@@ -213,9 +213,9 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
         HistFilter.push_back(BendingPhiIndexType(2,2,2,3));
 
         int Filter0[] = {0,2,4};
-        int Filter1[] = {0,2,4,5,6};
+        int Filter1[] = {2,4,5,6}; // kick out 0
         int Filter2[] = {0,1,3};
-        int Filter3[] = {0,1,3,5,6};
+        int Filter3[] = {1,3,5,6}; // kick out 0
         int Filter4[] = {0,1,2,3,4,5,6}; // fullset
 
         BendingPhiMaxFilter[0].assign(Filter0, Filter0+sizeof(Filter0)/sizeof(Filter0[0]));
@@ -246,7 +246,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
         int Filter5[] = {0,1,2,6};
         int Filter6[] = {4,5};
         int Filter7[] = {4,5,7};
-        
+
         BendingPhiMaxFilter[0].assign(Filter0, Filter0+sizeof(Filter0)/sizeof(Filter0[0]));
         BendingPhiMaxFilter[1].assign(Filter1, Filter1+sizeof(Filter1)/sizeof(Filter1[0]));
         BendingPhiMaxFilter[2].assign(Filter2, Filter2+sizeof(Filter2)/sizeof(Filter2[0]));
@@ -260,6 +260,24 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
             for(int j = 0; j < BendingPhiMaxFilter[i].size(); j++) 
                 BendingPhiMaxFilterMap[i][BendingPhiMaxFilter[i][j]] = -1;
 
+    }
+    if(PatternType%10 == 2) {
+        HistFilter.push_back(BendingPhiIndexType(0,3,3,4));
+        HistFilter.push_back(BendingPhiIndexType(0,3,3,5));
+        HistFilter.push_back(BendingPhiIndexType(0,4,4,5));
+        HistFilter.push_back(BendingPhiIndexType(0,0,0,3));
+        HistFilter.push_back(BendingPhiIndexType(0,0,0,4));
+        HistFilter.push_back(BendingPhiIndexType(0,0,0,5));
+
+        int Filter0[] = {0,1,2};
+        int Filter1[] = {3,4,5};
+
+        BendingPhiMaxFilter[0].assign(Filter0, Filter0+sizeof(Filter0)/sizeof(Filter0[0]));
+        BendingPhiMaxFilter[1].assign(Filter1, Filter1+sizeof(Filter1)/sizeof(Filter1[0]));
+
+        for(int i = 0; i < 8; i++)
+            for(int j = 0; j < BendingPhiMaxFilter[i].size(); j++)
+                BendingPhiMaxFilterMap[i][BendingPhiMaxFilter[i][j]] = -1;
     }
 
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
@@ -298,13 +316,13 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
 
 void RPCBendingAnalyzer::analyze(double thePhiC2R) {
 
-    if(thePhiC2R != -1.)
+    if(thePhiC2R > 0.)
         PhiC2R = thePhiC2R;
 
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
-          if(BendingPhiMaxFilterMap[PatternType/10][(int)Index] != -1)
+        if(BendingPhiMaxFilterMap[PatternType/10][(int)Index] != -1)
             continue;
-        
+
         int i = HistFilter[Index].m[0];
         int j = HistFilter[Index].m[1];
         int k = HistFilter[Index].m[2];
@@ -316,27 +334,30 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
     recHitBendingPhiMaxHist->Clear();
     recHitBendingPhiMinHist->Clear();
 
-    int Nentries = Tree0->GetEntries()/10;
+    int Nentries = Tree0->GetEntries();
     for(int i = 0; i < Nentries; i++) {
         Tree0->GetEntry(i);
-        
+
         if(debug) cout << "PatternType: " << PatternType << ", simTrackMomentumPt: " << simTrackMomentumPt << endl;
 
         if(fabs(simTrackMomentumPt) > PtScale)
             continue;
 
+        //if(fabs(simTrackMomentumEta) > 0.2)
+        //continue;
+
         getBendingPhiMax();
-        
+
         // Pattern Filter
         if(PatternType == 40) {
-            if(fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1])) < SegmentBendingCut &&  recBendingPhiMax < MaxBendingCut)
-                continue;
-            
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
-                continue;
+            //if(fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1])) < SegmentBendingCut)
+            //continue;
 
-            if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) < 0.)
-                continue;
+            //if(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1])*simTrackCharge > 0.)
+            //continue;
+
+            //if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2]) > 0. || recBendingPhiMax * getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[0][1]) < 0.)
+            //continue;
 
             theRefPt = simPtatRef[0] * (double)simTrackCharge;
         }
@@ -348,7 +369,8 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+            //if(recBendingPhiMax*(double)simTrackCharge > 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -370,8 +392,8 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
-            
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+
+            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -388,13 +410,13 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
         }
 
         if(PatternType == 1 || PatternType == 11) {
-            
+
             if(fabs(recBendingPhiMax) < MaxBendingCut && fabs(getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0])) < SegmentBendingCut) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+            if(recBendingPhiMax*(double)simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -412,10 +434,10 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
-            
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+
+            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
                 continue;
-            
+
             if(applyFilter == true)
                 if(fabs(recBendingPhiMax) < PhiC2R)
                     if(recBendingPhiMax * getdPhi(recHitBendingPhi[0][1], recHitBendingPhi[0][0]) > 0.) {
@@ -432,7 +454,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                 continue;
             }
 
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -445,13 +467,13 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
         }
 
         if(PatternType == 61 || PatternType == 71) {
-            
+
             if(fabs(recBendingPhiMax) < MaxBendingCut && fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2])) < SegmentBendingCut) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
-            
-            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck > 0.)
+
+            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
                 continue;
 
             if(applyFilter == true)
@@ -462,6 +484,29 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
                     }
             theRefPt = simPtatRef[2] * (double)simTrackCharge;
         }
+
+        if(PatternType == 2 || PatternType == 12) {
+            if(fabs(recBendingPhiMax) < MaxBendingCut && fabs(getdPhi(recHitBendingPhi[2][3], recHitBendingPhi[2][2])) < SegmentBendingCut) {
+                if(debug) cout << "block by BendingPhiTH." << endl;
+                continue;
+            }
+
+            if(recBendingPhiMax*simTrackCharge*BendingWiseCheck < 0.)
+                continue;
+
+            if(applyFilter == true)
+                if(fabs(recBendingPhiMax) < PhiC2R)
+                    if((recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][3]) > 0.) || (recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][4]) > 0.) || (recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][5]) > 0.)) {
+                        if((recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][3]) > 0.) && (recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][4]) > 0.) && (recBendingPhiMax * getdPhi(recHitBendingPhi[0][0], recHitBendingPhi[0][5]) > 0.))
+                            recBendingPhiMax *= -1.; // correct the charge
+                        else {
+                            if(debug) cout << "block by Filter." << endl;
+                            continue;
+                        }
+                    }
+            theRefPt = simPtatRef[0] * (double)simTrackCharge;
+        }
+
         fillBendingPhiHist();
     }
 
@@ -521,9 +566,9 @@ void RPCBendingAnalyzer::getBendingPhiMax() {
 }
 
 void RPCBendingAnalyzer::fillBendingPhiHist() {
-    
+
     if(debug) cout << "filling hists." << endl;
-    
+
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
         if(BendingPhiMaxFilterMap[PatternType/10][(int)Index] != -1)
             continue;
@@ -543,7 +588,7 @@ void RPCBendingAnalyzer::fillBendingPhiHist() {
         std::stringstream TempIndexL;
         TempIndexL << l;
         string IndexL = TempIndexL.str();
-    
+
         double simHitBendingPhiTemp = getdPhi(simHitBendingPhi[k][l], simHitBendingPhi[i][j]);
         double recHitBendingPhiTemp = getdPhi(recHitBendingPhi[k][l], recHitBendingPhi[i][j]);
         if(debug) cout << "simHitBendingPhiTemp: " << simHitBendingPhiTemp << ", recHitBendingPhiTemp: " << recHitBendingPhiTemp << endl;
@@ -567,7 +612,7 @@ void RPCBendingAnalyzer::printHist() {
     string SaveName;
     for(unsigned int Index = 0; Index < HistFilter.size(); Index++) {
         if(BendingPhiMaxFilterMap[PatternType/10][(int)Index] != -1)
-        //if(find(BendingPhiMaxFilter[PatternType/10].begin(), BendingPhiMaxFilter[PatternType/10].end(), (int)Index) == BendingPhiMaxFilter[PatternType/10].end())
+            //if(find(BendingPhiMaxFilter[PatternType/10].begin(), BendingPhiMaxFilter[PatternType/10].end(), (int)Index) == BendingPhiMaxFilter[PatternType/10].end())
             continue;
         int i = HistFilter[Index].m[0];
         std::stringstream TempIndexI;
@@ -700,9 +745,9 @@ void RPCBendingAnalyzer::getEventRato(double theFitPtRange) {
         if(EventNumberInsideFitRegion/EventNumberOutsideFitRegion <= RatoThresoldF2P && PhiValue <= 0.12)
             PhiF2P = PhiValue;
 
-        if(debug) cout << "PhiC2R: " << PhiC2R << ", PhiF2P: " << PhiF2P << endl;
+        if(recorde) cout << "PhiC2R: " << PhiC2R << ", PhiF2P: " << PhiF2P << endl;
     }
-    
+
     string SaveName;
     TCanvas* Rato2PhiCanvas = new TCanvas("Rato2Phi", "Rato2Phi", 800, 600);
     Rato2PhiCanvas->cd();
@@ -828,7 +873,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
                 EventNumberOutsideRegion += TempValue;
             else
                 EventNumberInsideRegion += TempValue;
-            
+
             if(debug) cout << "PtIndex: " << PtIndex << ", PtValue: " << PtValue << ", TempValue: " << TempValue << endl;
         }
         if(EventNumberOutsideRegion == 0.)
@@ -844,7 +889,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
            EndPtValue /= 2.;
            Fit0->SetRange(StartPtValue, EndPtValue);
            }
-        */
+           */
         double theFinalHistMaxValue = FinalPtofPhiHist->GetBinContent(FinalPtofPhiHist->GetMaximumBin());
         double theFinalHistMaxBinCenter = FinalPtofPhiHist->GetBinCenter(FinalPtofPhiHist->GetMaximumBin());
         Fit0->SetParameter(0, theFinalHistMaxValue);
@@ -858,7 +903,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
         if(debug) cout << "FinalChiSquare: " << FinalChiSquare << ", FinalMean: " << FinalMean << ", FinalSigma:" << FinalSigma << endl;
         // when fitting fail Mean will over PtScale range, while Sigma keep in same level. we confirm this from Fit plots
         bool isFinalCorrected = false;
-        if(FinalMean < 0. || FinalMean > WorkPtRange || FinalReducedChi2 > Chi2TH) { 
+        if(FinalMean < 0. || FinalMean > WorkPtRange ) { //|| FinalReducedChi3 > Chi2TH) { 
             FinalMean = theFinalHistMaxBinCenter;
             FinalSigma = FinalMean / 5.;
             isFinalCorrected = true;
@@ -910,76 +955,76 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
                 PhiUpperLimitSet = true;
         }
         Phi2StatisticRatoHist->SetBinContent(thePhiIndex, Rato);
+        }
+        if(recorde) std::cout << "BendingPhiLowerLimit: " << BendingPhiLowerLimit << ", BendingPhiUpperLimit: " << BendingPhiUpperLimit << endl;
+
+        if(startPhiforMean <= 0.)
+            startPhiforMean = BendingPhiLowerLimit;
+        if(endPhiforMean <= 0.)
+            endPhiforMean = BendingPhiUpperLimit;
+        if(startPhiforSigma <= 0.)
+            startPhiforSigma = BendingPhiLowerLimit;
+        if(endPhiforSigma <= 0.)
+            endPhiforSigma = BendingPhiUpperLimit;
+        if(recorde) std::cout << "startPhiforMean: " << startPhiforMean << ", endPhiforMean: " << endPhiforMean << ", startPhiforSigma: " << startPhiforSigma << ", endPhiforSigma: " << endPhiforSigma << endl;
+
+        gStyle->SetOptFit(0111);
+        double para[3];
+        TF1 *PtValueFunction = new TF1("fitPtValue", "[0]*x*x+[1]*x+[2]", startPhiforMean, endPhiforMean);
+        //PtValueFunction->SetParameters(a, b, c);
+        Phi2MeanPtHist->Fit(PtValueFunction, "R");
+        PtValueFunction->GetParameters(para);
+        if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
+
+        TF1 *PtErrorFunction = new TF1("fitPtError", "[0]*x*x+[1]*x+[2]", startPhiforSigma, endPhiforSigma);
+        //PtErrorFunction->SetParameters(a, b, c);
+        Phi2RMSPtHist->Fit(PtErrorFunction, "R");
+        PtErrorFunction->GetParameters(para);
+        if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
+
+
+        TCanvas* Phi2MeanPtCanvas = new TCanvas("Phi2MeanPt", "Phi2MeanPt", 800, 600);
+        Phi2MeanPtCanvas->cd();
+        TPad* Phi2MeanPtPad = new TPad("Phi2MeanPt", "Phi2MeanPt", 0, 0, 1, 1);
+        Phi2MeanPtPad->Draw();
+        Phi2MeanPtPad->cd();
+        Phi2MeanPtHist->GetXaxis()->SetTitle("max bending in Phi");
+        Phi2MeanPtHist->GetXaxis()->CenterTitle(1);
+        Phi2MeanPtHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
+        Phi2MeanPtHist->GetYaxis()->CenterTitle(1);
+        Phi2MeanPtHist->Draw("");
+        PtValueFunction->SetLineStyle(2);
+        PtValueFunction->SetLineColor(3);
+        PtValueFunction->Draw("same");
+        SaveName = FitHistName + "Phi2MeanPt" + OutputFix;
+        Phi2MeanPtCanvas->SaveAs(SaveName.c_str());
+
+        TCanvas* Phi2RMSPtCanvas = new TCanvas("Phi2RMSPt", "Phi2RMSPt", 800, 600);
+        Phi2RMSPtCanvas->cd();
+        TPad* Phi2RMSPtPad = new TPad("Phi2RMSPt", "Phi2RMSPt", 0, 0, 1, 1);
+        Phi2RMSPtPad->Draw();
+        Phi2RMSPtPad->cd();
+        Phi2RMSPtHist->GetXaxis()->SetTitle("max bending in Phi");
+        Phi2RMSPtHist->GetXaxis()->CenterTitle(1);
+        Phi2RMSPtHist->GetYaxis()->SetTitle("sigma Pt estimation Gev");
+        Phi2RMSPtHist->GetYaxis()->CenterTitle(1);
+        Phi2RMSPtHist->Draw("");
+        PtErrorFunction->SetLineStyle(2);
+        PtErrorFunction->SetLineColor(3);
+        PtErrorFunction->Draw("same");
+        SaveName = FitHistName + "Phi2RMSPt" + OutputFix;
+        Phi2RMSPtCanvas->SaveAs(SaveName.c_str());
+
+        TCanvas* Phi2StatisticRatoCanvas = new TCanvas("Phi2StatisticRato", "Phi2StatisticRato", 800, 600);
+        Phi2StatisticRatoCanvas->cd();
+        TPad* Phi2StatisticRatoPad = new TPad("Phi2StatisticRato", "Phi2StatisticRato", 0, 0, 1, 1);
+        Phi2StatisticRatoPad->Draw();
+        Phi2StatisticRatoPad->cd();
+        Phi2StatisticRatoHist->GetXaxis()->SetTitle("max bending in Phi");
+        Phi2StatisticRatoHist->GetXaxis()->CenterTitle(1);
+        Phi2StatisticRatoHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
+        Phi2StatisticRatoHist->GetYaxis()->CenterTitle(1);
+        Phi2StatisticRatoHist->Draw("");
+        SaveName = FitHistName + "Phi2StatisticRato" + OutputFix;
+        Phi2StatisticRatoCanvas->SaveAs(SaveName.c_str());
     }
-    if(recorde) std::cout << "BendingPhiLowerLimit: " << BendingPhiLowerLimit << ", BendingPhiUpperLimit: " << BendingPhiUpperLimit << endl;
-
-    if(startPhiforMean <= 0.)
-        startPhiforMean = BendingPhiLowerLimit;
-    if(endPhiforMean <= 0.)
-        endPhiforMean = BendingPhiUpperLimit;
-    if(startPhiforSigma <= 0.)
-        startPhiforSigma = BendingPhiLowerLimit;
-    if(endPhiforSigma <= 0.)
-        endPhiforSigma = BendingPhiUpperLimit;
-    if(recorde) std::cout << "startPhiforMean: " << startPhiforMean << ", endPhiforMean: " << endPhiforMean << ", startPhiforSigma: " << startPhiforSigma << ", endPhiforSigma: " << endPhiforSigma << endl;
-
-    gStyle->SetOptFit(0111);
-    double para[3];
-    TF1 *PtValueFunction = new TF1("fitPtValue", "[0]*x*x+[1]*x+[2]", startPhiforMean, endPhiforMean);
-    //PtValueFunction->SetParameters(a, b, c);
-    Phi2MeanPtHist->Fit(PtValueFunction, "R");
-    PtValueFunction->GetParameters(para);
-    if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
-
-    TF1 *PtErrorFunction = new TF1("fitPtError", "[0]*x*x+[1]*x+[2]", startPhiforSigma, endPhiforSigma);
-    //PtErrorFunction->SetParameters(a, b, c);
-    Phi2RMSPtHist->Fit(PtErrorFunction, "R");
-    PtErrorFunction->GetParameters(para);
-    if(recorde) cout << "Fitted para: " << para[0] << ", " << para[1] << ", " << para[2] << endl;
-
-
-    TCanvas* Phi2MeanPtCanvas = new TCanvas("Phi2MeanPt", "Phi2MeanPt", 800, 600);
-    Phi2MeanPtCanvas->cd();
-    TPad* Phi2MeanPtPad = new TPad("Phi2MeanPt", "Phi2MeanPt", 0, 0, 1, 1);
-    Phi2MeanPtPad->Draw();
-    Phi2MeanPtPad->cd();
-    Phi2MeanPtHist->GetXaxis()->SetTitle("max bending in Phi");
-    Phi2MeanPtHist->GetXaxis()->CenterTitle(1);
-    Phi2MeanPtHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
-    Phi2MeanPtHist->GetYaxis()->CenterTitle(1);
-    Phi2MeanPtHist->Draw("");
-    PtValueFunction->SetLineStyle(2);
-    PtValueFunction->SetLineColor(3);
-    PtValueFunction->Draw("same");
-    SaveName = FitHistName + "Phi2MeanPt" + OutputFix;
-    Phi2MeanPtCanvas->SaveAs(SaveName.c_str());
-
-    TCanvas* Phi2RMSPtCanvas = new TCanvas("Phi2RMSPt", "Phi2RMSPt", 800, 600);
-    Phi2RMSPtCanvas->cd();
-    TPad* Phi2RMSPtPad = new TPad("Phi2RMSPt", "Phi2RMSPt", 0, 0, 1, 1);
-    Phi2RMSPtPad->Draw();
-    Phi2RMSPtPad->cd();
-    Phi2RMSPtHist->GetXaxis()->SetTitle("max bending in Phi");
-    Phi2RMSPtHist->GetXaxis()->CenterTitle(1);
-    Phi2RMSPtHist->GetYaxis()->SetTitle("sigma Pt estimation Gev");
-    Phi2RMSPtHist->GetYaxis()->CenterTitle(1);
-    Phi2RMSPtHist->Draw("");
-    PtErrorFunction->SetLineStyle(2);
-    PtErrorFunction->SetLineColor(3);
-    PtErrorFunction->Draw("same");
-    SaveName = FitHistName + "Phi2RMSPt" + OutputFix;
-    Phi2RMSPtCanvas->SaveAs(SaveName.c_str());
-
-    TCanvas* Phi2StatisticRatoCanvas = new TCanvas("Phi2StatisticRato", "Phi2StatisticRato", 800, 600);
-    Phi2StatisticRatoCanvas->cd();
-    TPad* Phi2StatisticRatoPad = new TPad("Phi2StatisticRato", "Phi2StatisticRato", 0, 0, 1, 1);
-    Phi2StatisticRatoPad->Draw();
-    Phi2StatisticRatoPad->cd();
-    Phi2StatisticRatoHist->GetXaxis()->SetTitle("max bending in Phi");
-    Phi2StatisticRatoHist->GetXaxis()->CenterTitle(1);
-    Phi2StatisticRatoHist->GetYaxis()->SetTitle("mean Pt estimation Gev");
-    Phi2StatisticRatoHist->GetYaxis()->CenterTitle(1);
-    Phi2StatisticRatoHist->Draw("");
-    SaveName = FitHistName + "Phi2StatisticRato" + OutputFix;
-    Phi2StatisticRatoCanvas->SaveAs(SaveName.c_str());
-}
