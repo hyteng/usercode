@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/05 09:07:32 $
- *  $Revision: 1.8 $
+ *  $Date: 2012/06/05 09:31:01 $
+ *  $Revision: 1.9 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -150,9 +150,9 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::seed(const edm::Eve
 
     Algorithm = checkAlgorithm();
     createPattern();
-    if(Algorithm >= 1 && Algorithm <= 4)
+    if(Algorithm >= 1 && Algorithm <= 6)
         checkDoubleSegmentPattern();
-    if(Algorithm >= 5 && Algorithm <= 12)
+    if(Algorithm >= 7 && Algorithm <= 14)
         checkSingleSegmentPattern();
 
     computePatternfromSimData();        
@@ -262,7 +262,7 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
         RefSegment.first = theRecHits[0];
         RefSegment.second = theRecHits[1];
         theRefRecHit = theRecHits[0];
-        MeanMagneticField = getMeanMagneticField(1);
+        MeanMagneticField = getMeanMagneticField(0);
     }
 
     DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
@@ -291,7 +291,7 @@ int SimRPCSeedPattern::findIntervalIndex() {
         }
     }
     if(findIntervalIndex == false)
-        IntervalIndex = -1;
+        IntervalIndex = 0;
 
     if(debug) cout << "Find IntervalIndex: " << IntervalIndex << endl;
 
@@ -532,7 +532,7 @@ void SimRPCSeedPattern::createPattern() {
                     isGoodPattern = -1;
         }
         else {
-            if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+            if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
                 if(applyFilter == true) {
                     if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. || BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.) {
                         if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. && BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.)
@@ -584,7 +584,7 @@ void SimRPCSeedPattern::createPattern() {
                     isGoodPattern = -1;
         }
         else {          
-            if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+            if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
                 if(applyFilter == true) {
                     if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0.) {
                         isGoodPattern = -1;

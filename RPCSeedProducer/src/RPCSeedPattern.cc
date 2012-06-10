@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/05 09:07:32 $
- *  $Revision: 1.11 $
+ *  $Date: 2012/06/05 09:31:01 $
+ *  $Revision: 1.12 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -139,9 +139,9 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
 
     Algorithm = checkAlgorithm();
     createPattern();
-    if(Algorithm <= 4 && Algorithm >= 1)
+    if(Algorithm <= 6 && Algorithm >= 1)
         checkDoubleSegmentPattern();
-    if(Algorithm >= 5 && Algorithm <= 12)
+    if(Algorithm >= 7 && Algorithm <= 14)
         checkSingleSegmentPattern();
 
     computeSegmentPattern();
@@ -190,7 +190,7 @@ void RPCSeedPattern::measureRecHitandMagneticField() {
         RefSegment.first = theRecHits[0];
         RefSegment.second = theRecHits[1];
         theRefRecHit = theRecHits[0];
-        MeanMagneticField = getMeanMagneticField(1);
+        MeanMagneticField = getMeanMagneticField(0);
     }
 
     if(isVertexConstraint == true)
@@ -225,7 +225,7 @@ int RPCSeedPattern::findIntervalIndex() {
     }
 
     if(findIntervalIndex == false)
-        IntervalIndex = -1;
+        IntervalIndex = 0;
 
     if(debug) cout << "Find IntervalIndex: " << IntervalIndex << endl;
 
@@ -467,7 +467,7 @@ void RPCSeedPattern::checkDoubleSegmentPattern() {
                 isGoodPattern = -1;
     }
     else {
-        if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+        if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
             if(applyFilter == true) {
                 if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. || BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.) {
                     if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. && BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.)
@@ -522,7 +522,7 @@ void RPCSeedPattern::checkSingleSegmentPattern() {
                 isGoodPattern = -1;
     }
     else {
-        if(BendingPhiMax <= ExhaustivePhiTH[Algorithm-1]) {
+        if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
             if(applyFilter == true) {
                 if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0.) {
                     isGoodPattern = -1;
