@@ -405,7 +405,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
             double BendingPhiVal1 = getdPhi(recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[SampleLayerCollection.size()-1]], recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[1]]);
             
             // filter small reverse bending if needed
-            if(fabs(recBendingPhiMax) < MaxBendingCut && (fabs(BendingPhiVal0) < SegmentBendingCut0 || fabs(BendingPhiVal1) < SegmentBendingCut1)) {
+            if(fabs(recBendingPhiMax) < MaxBendingCut || fabs(BendingPhiVal0) < SegmentBendingCut0 || fabs(BendingPhiVal1) < SegmentBendingCut1) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
@@ -416,9 +416,9 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
 
             // check and correct reverse bending
             if(applyFilter == true)
-                if(fabs(recBendingPhiMax) < PhiC2R)
-                    if(recBendingPhiMax * BendingPhiVal0 < 0. || recBendingPhiMax * BendingPhiVal1 < 0.) {
-                        if(recBendingPhiMax * BendingPhiVal0 < 0. && recBendingPhiMax * BendingPhiVal1 < 0.)
+                //if(fabs(recBendingPhiMax) < PhiC2R)
+                    if((recBendingPhiMax * BendingPhiVal0 < 0. && SegmentBendingCut0 > 0.) || (recBendingPhiMax * BendingPhiVal1 < 0. && SegmentBendingCut1 > 0.)) {
+                        if(SegmentBendingCut0 > 0. && SegmentBendingCut1 > 0. && recBendingPhiMax * BendingPhiVal0 < 0. && recBendingPhiMax * BendingPhiVal1 < 0.)
                             recBendingPhiMax *= -1.;
                         else {
                             if(debug) cout << "block by Filter." << endl;
