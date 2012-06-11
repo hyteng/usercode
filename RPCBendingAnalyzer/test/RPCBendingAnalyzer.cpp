@@ -405,7 +405,7 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
             double BendingPhiVal1 = getdPhi(recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[SampleLayerCollection.size()-1]], recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[1]]);
             
             // filter small reverse bending if needed
-            if(fabs(recBendingPhiMax) < MaxBendingCut && fabs(BendingPhiVal0) < SegmentBendingCut0 && fabs(BendingPhiVal1) < SegmentBendingCut1) {
+            if(fabs(recBendingPhiMax) < MaxBendingCut && (fabs(BendingPhiVal0) < SegmentBendingCut0 || fabs(BendingPhiVal1) < SegmentBendingCut1)) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
