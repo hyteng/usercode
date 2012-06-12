@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/05 09:31:01 $
- *  $Revision: 1.12 $
+ *  $Date: 2012/06/10 06:50:51 $
+ *  $Revision: 1.13 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -212,6 +212,7 @@ void RPCSeedPattern::measureRecHitandMagneticField() {
 
 
 int RPCSeedPattern::findIntervalIndex() {
+
     int IntervalIndex = -1;
     bool findIntervalIndex = false;
     // find the 1st interval with low magnetic field in full range, which lead to a straight segment. Then check if the next interval are with high magnetic field, where the track start the bending.
