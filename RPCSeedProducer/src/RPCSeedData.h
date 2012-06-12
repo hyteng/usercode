@@ -22,54 +22,67 @@
 #define PositiveEndcapLayerShift 8
 #endif
 
-
-#ifndef BarrelDoubleSegmentCode1
-#define BarrelDoubleSegmentCode1 47 // 101111
+// RPCLayer: 5/4/3/2/1/0
+#ifndef BarrelPatternCode1
+#define BarrelPatternCode1 15 // 001111=RPCLayer0123
 #endif
 
-#ifndef BarrelDoubleSegmentCode2
-#define BarrelDoubleSegmentCode2 31 // 011111
+#ifndef BarrelPatternCode2
+#define BarrelPatternCode2 23 // 010111=RPCLayer0124
 #endif
 
-#ifndef BarrelDoubleSegmentCode3
-#define BarrelDoubleSegmentCode3 57 // 111001
+#ifndef BarrelPatternCode3
+#define BarrelPatternCode3 39 // 100111=RPCLayer0125
 #endif
 
-#ifndef BarrelDoubleSegmentOptionalCode
-#define BarrelDoubleSegmentOptionalCode 48 // 110000
+#ifndef BarrelPatternCode4
+#define BarrelPatternCode4 27 // 011011=RPCLayer0134
 #endif
 
-#ifndef BarrelSingleSegmentCode1
-#define BarrelSingleSegmentCode1 51 // 110011
+#ifndef BarrelPatternCode5
+#define BarrelPatternCode5 43 // 101011=RPCLayer0135
 #endif
 
-#ifndef BarrelSingleSegmentCode2
-#define BarrelSingleSegmentCode2 60 // 111100
+#ifndef BarrelPatternCode6
+#define BarrelPatternCode6 51 // 110011=RPCLayer0145
 #endif
 
-#ifndef BarrelSingleSegmentOptionalCode1
-#define BarrelSingleSegmentOptionalCode1 3 // 000011
+#ifndef BarrelPatternCode7
+#define BarrelPatternCode7 29 // 011101=RPCLayer0234
 #endif
 
-#ifndef BarrelSingleSegmentOptionalCode2
-#define BarrelSingleSegmentOptionalCode2 12 // 001100
+#ifndef BarrelPatternCode8
+#define BarrelPatternCode8 45 // 101101=RPCLayer0235
 #endif
 
-#ifndef BarrelSingleSegmentOptionalCode3
-#define BarrelSingleSegmentOptionalCode3 16 // 010000
+#ifndef BarrelPatternCode9
+#define BarrelPatternCode9 53 // 110101=RPCLayer0245
 #endif
 
-#ifndef BarrelSingleSegmentOptionalCode4
-#define BarrelSingleSegmentOptionalCode4 32 // 100000
+#ifndef BarrelPatternCode10
+#define BarrelPatternCode10 57 // 111001=RPCLayer0345
 #endif
 
-#ifndef EndcapSingleSegmentCode1
-#define EndcapSingleSegmentCode1 15 // 1111
+#ifndef BarrelPatternCode11
+#define BarrelPatternCode11 30 // 011110=RPCLayer1234
 #endif
 
-#ifndef EndcapSingleSegmentOptionalCode
-#define EndcapSingleSegmentOptionalCode 24 // 11000
+#ifndef BarrelPatternCode12
+#define BarrelPatternCode12 46 // 101110=RPCLayer1235
 #endif
+
+#ifndef BarrelPatternCode13
+#define BarrelPatternCode13 54 // 110110=RPCLayer1245
+#endif
+
+#ifndef BarrelPatternCode14
+#define BarrelPatternCode14 58 // 111010=RPCLayer1345
+#endif
+
+#ifndef BarrelPatternCode15
+#define BarrelPatternCode15 60 // 111100=RPCLayer2345
+#endif
+
 
 #ifndef UpperLimitMeanPt2
 #define UpperLimitMeanPt2 50.0

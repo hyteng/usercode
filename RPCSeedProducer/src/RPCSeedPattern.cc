@@ -53,7 +53,9 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     AlgorithmType = iConfig.getParameter<unsigned int>("AlgorithmType");
     isVertexConstraint = iConfig.getParameter<bool>("isVertexConstraint");
     isContinuousFilter = iConfig.getParameter<bool>("isContinuousFilter");
-    Cut1234 = iConfig.getParameter< vector<double> >("Cut1234");
+    Cut0 = iConfig.getParameter< vector<double> >("Cut0");
+    Cut1 = iConfig.getParameter< vector<double> >("Cut1");
+    Cut2 = iConfig.getParameter< vector<double> >("Cut2");
     CutMax = iConfig.getParameter< vector<double> >("CutMax");
     BendingPhiLowerTH = iConfig.getParameter< vector<double> >("BendingPhiLowerTH");
     BendingPhiUpperTH = iConfig.getParameter< vector<double> >("BendingPhiUpperTH");
@@ -75,7 +77,7 @@ void RPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     else
         applyFilter = true;
 
-    if(Cut1234.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || ProbingPhiUpperTH.size() == 0 || ProbingPhiLowerTH.size() == 0 || ExhaustivePhiTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
+    if(Cut0.size() == 0 || Cut1.size() == 0 || Cut2.size() == 0 || CutMax.size() == 0 || BendingPhiFitValueUpperLimit.size() == 0 || BendingPhiFitSigmaUpperLimit.size() == 0 || BendingPhiLowerTH.size() == 0 || BendingPhiUpperTH.size() == 0 || ProbingPhiUpperTH.size() == 0 || ProbingPhiLowerTH.size() == 0 || ExhaustivePhiTH.size() == 0 || MeanPt_Parameter0.size() == 0 || MeanPt_Parameter1.size() == 0 || MeanPt_Parameter2.size() == 0 || SigmaPt_Parameter0.size() == 0 || SigmaPt_Parameter1.size() == 0 || SigmaPt_Parameter2.size() == 0 )
         isConfigured = false;
 }
 
@@ -111,7 +113,7 @@ void RPCSeedPattern::setRecHits(const ConstMuonRecHitContainer& RecHits) {
 
         theRecHits.push_back(*Iter);
         theRecHitLayers.push_back(Layer);
-        theRecHitPosition[SeedLayer] = (*Iter)->globalPosition();
+        theRecHitPosition[Layer] = (*Iter)->globalPosition();
     }
     isRecHitset = true;
 }
@@ -138,13 +140,11 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
     isGoodPattern = -1;
 
     Algorithm = checkAlgorithm();
-    createPattern();
-    if(Algorithm <= 6 && Algorithm >= 1)
-        checkDoubleSegmentPattern();
-    if(Algorithm >= 7 && Algorithm <= 14)
-        checkSingleSegmentPattern();
+    createRPCPattern();
+    if(Algorithm <= 28 && Algorithm >= 1)
+        checkRPCPattern();
 
-    computeSegmentPattern();
+    computeRPCPattern();
 
     return createSeed(isGoodSeed);
 }
@@ -212,7 +212,6 @@ void RPCSeedPattern::measureRecHitandMagneticField() {
 
 
 int RPCSeedPattern::findIntervalIndex() {
-
     int IntervalIndex = -1;
     bool findIntervalIndex = false;
     // find the 1st interval with low magnetic field in full range, which lead to a straight segment. Then check if the next interval are with high magnetic field, where the track start the bending.
@@ -277,36 +276,46 @@ int RPCSeedPattern::checkAlgorithm() {
     }
     // Set algorithm choice with priority, value/10=index_number_in_algorithm_parameter_vector, value%10=algorithm_type:1-barrel_double_segment, 2-barrel_singal_segment, 3-endcap_singal_segment
     if(debug) cout << "theBarrelOccupancyCode: " << theBarrelOccupancyCode << ", theEndcapOccupancyCode: " << theEndcapOccupancyCode << endl;
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelDoubleSegmentCode1)
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode1)
+        AlgorithmChoice.push_back(1);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode2)
+        AlgorithmChoice.push_back(2);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode3)
+        AlgorithmChoice.push_back(3);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode4)
+        AlgorithmChoice.push_back(4);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode5)
+        AlgorithmChoice.push_back(5);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode6)
+        AlgorithmChoice.push_back(6);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode7)
+        AlgorithmChoice.push_back(7);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode8)
+        AlgorithmChoice.push_back(8);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode9)
+        AlgorithmChoice.push_back(9);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode10)
+        AlgorithmChoice.push_back(10);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode11)
         AlgorithmChoice.push_back(11);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelDoubleSegmentCode2)
-        AlgorithmChoice.push_back(21);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelDoubleSegmentCode3)
-        AlgorithmChoice.push_back(31);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode1)
-        AlgorithmChoice.push_back(42);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode1) == BarrelSingleSegmentOptionalCode1 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode2) != 0 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode4) == BarrelSingleSegmentOptionalCode4)
-        AlgorithmChoice.push_back(52);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode1) == BarrelSingleSegmentOptionalCode1 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode2) != 0 && (theBarrelOccupancyCode & BarrelSingleSegmentOptionalCode3) == BarrelSingleSegmentOptionalCode3)
-        AlgorithmChoice.push_back(62);
-    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelSingleSegmentCode2)
-        AlgorithmChoice.push_back(72);
-    if(isBarrel == false && isNegativeEndcap == true && isPositiveEndcap == false && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
-        AlgorithmChoice.push_back(83);
-    if(isBarrel == false && isNegativeEndcap == false && isPositiveEndcap == true && theEndcapOccupancyCode == EndcapSingleSegmentCode1)
-        AlgorithmChoice.push_back(93);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode12)
+        AlgorithmChoice.push_back(12);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode13)
+        AlgorithmChoice.push_back(13);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode14)
+        AlgorithmChoice.push_back(14);
 
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
     if(AlgorithmType == 0 && AlgorithmChoice.size() > 0) {
-        if(checkParameters((unsigned int)(AlgorithmChoice[0]/10)))
-            FinalAlgorithm = (int)AlgorithmChoice[0]/10;
+        if(checkParameters((unsigned int)(AlgorithmChoice[0])))
+            FinalAlgorithm = AlgorithmChoice[0];
     }
     else {
         for(unsigned int i = 0; i < AlgorithmChoice.size(); i++)
-            if(AlgorithmType == (int)(AlgorithmChoice[i]%10))
-                if(checkParameters((unsigned int)(AlgorithmChoice[i]/10)))
-                    FinalAlgorithm = (int)AlgorithmChoice[i]/10;
+            if(AlgorithmType == AlgorithmChoice[i])
+                if(checkParameters((unsigned int)(AlgorithmChoice[i])))
+                    FinalAlgorithm = AlgorithmChoice[i];
     }
 
     PatternQuality = FinalAlgorithm;
@@ -328,106 +337,57 @@ bool RPCSeedPattern::checkParameters(unsigned int theAlgorithmType) {
         AlgorithmIndex = theAlgorithmType * 2;
 
     bool isParametersSet = true;
-    if(Cut1234.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiLowerTH.size() < AlgorithmIndex || ExhaustivePhiTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
+    if(Cut0.size() < AlgorithmIndex || Cut1.size() < AlgorithmIndex || Cut2.size() < AlgorithmIndex || CutMax.size() < AlgorithmIndex || BendingPhiFitValueUpperLimit.size() < AlgorithmIndex || BendingPhiFitSigmaUpperLimit.size() < AlgorithmIndex || BendingPhiLowerTH.size() < AlgorithmIndex || BendingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiUpperTH.size() < AlgorithmIndex || ProbingPhiLowerTH.size() < AlgorithmIndex || ExhaustivePhiTH.size() < AlgorithmIndex || MeanPt_Parameter0.size() < AlgorithmIndex || MeanPt_Parameter1.size() < AlgorithmIndex || MeanPt_Parameter2.size() < AlgorithmIndex || SigmaPt_Parameter0.size() < AlgorithmIndex || SigmaPt_Parameter1.size() < AlgorithmIndex || SigmaPt_Parameter2.size() < AlgorithmIndex )
         isParametersSet = false;
 
     return isParametersSet;
 }
 
-void RPCSeedPattern::createPattern() {
+void RPCSeedPattern::createRPCPattern() {
+    
+    if(Algorithm <= 0) {
+        isGoodPattern = -1;
+        isPatternChecked = true;
+        return;
+    }
 
     BendingFilter.clear();
-    if(Algorithm == 1) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
-    }
-    if(Algorithm == 2) {
-        //BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
-        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
-    }
-    if(Algorithm == 3) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
-    }
-    if(Algorithm == 4) {
-        //BendingFilter.push_back(BendingPhiIndexType(0,1,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
-    }
-    if(Algorithm == 5) {
-        BendingFilter.push_back(BendingPhiIndexType(0,3,3,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,3,3,5));
-        BendingFilter.push_back(BendingPhiIndexType(0,4,4,5));
-    }
-    if(Algorithm == 6) {
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,5));
-    }
 
-    if(Algorithm == 7) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-    }
-    if(Algorithm == 8) {
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
-    }
-    if(Algorithm == 9) {
-        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
-        else
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-    }
-    if(Algorithm == 10) {
-        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
-        else
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,5));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
-    }
-    if(Algorithm == 11) {
-        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
-        else
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-    }
-    if(Algorithm == 12) {
-        if(find(theRecHitLayers.begin(), theRecHitLayers.end(), 3) == theRecHitLayers.end())
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,2)); // we take both layer2/3 but layer2 is worse
-        else
-            BendingFilter.push_back(BendingPhiIndexType(0,1,1,3));
-        BendingFilter.push_back(BendingPhiIndexType(0,1,1,4));
-        BendingFilter.push_back(BendingPhiIndexType(0,0,0,1));
-    }
-    if(Algorithm == 13) {
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
-    }
-    if(Algorithm == 14) {
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,4));
-        BendingFilter.push_back(BendingPhiIndexType(2,3,3,5));
-        BendingFilter.push_back(BendingPhiIndexType(2,2,2,3));
-    }
+    if(isVertexConstraint == true)
+        for(unsigned int i = 0; i < theRecHitLayers.size()-1; i++)
+            for(unsigned int j = i; j < theRecHitLayers.size()-1; j++)
+                for(unsigned int k = j; k < theRecHitLayers.size()-1; k++)
+                    for(unsigned int l = k+1; l < theRecHitLayers.size(); l++) {
+                        // we are in vertex constraint mode, so take vertex as much as possible
+                        if(i != j)
+                            continue;
+                        // only RB1/2 could link with vertex, since RB3 are close to RB4 and bring in large widthing
+                        if(i == j && ((theRecHitLayers[i] < BarrelLayerNumber && theRecHitLayers[i] >= (BarrelLayerNumber-2)) || (theRecHitLayers[i] >= BarrelLayerNumber && theRecHitLayers[i] < (BarrelLayerNumber+EachEndcapLayerNumber) && theRecHitLayers[i] >= (BarrelLayerNumber+EachEndcapLayerNumber-2)) || (theRecHitLayers[i] >= (BarrelLayerNumber+EachEndcapLayerNumber) && theRecHitLayers[i] < (BarrelLayerNumber+2*EachEndcapLayerNumber) && theRecHitLayers[i] >= (BarrelLayerNumber+2*EachEndcapLayerNumber-2))))
+                            continue;
+                        // close layers bring in large widthing
+                        if((theRecHitLayers[i] < (BarrelLayerNumber-1) && theRecHitLayers[j] == (theRecHitLayers[i]+1)) || (theRecHitLayers[k] < (BarrelLayerNumber-1) && theRecHitLayers[l] == (theRecHitLayers[k]+1)))
+                            continue;
+                        BendingFilter.push_back(BendingPhiIndexType(theRecHitLayers[i], theRecHitLayers[j], theRecHitLayers[k], theRecHitLayers[l]));
+                    }
 
+    if(isVertexConstraint == false)
+        for(unsigned int i = 0; i < theRecHitLayers.size()-2; i++)
+            for(unsigned int j = i+1; j < theRecHitLayers.size()-1; j++)
+                for(unsigned int k = j; k < theRecHitLayers.size()-1; k++)
+                    for(unsigned int l = k+1; l < theRecHitLayers.size(); l++) {
+                        // close layers bring in large widthing
+                        //if((theRecHitLayers[i] < (BarrelLayerNumber-1) && theRecHitLayers[j] == (theRecHitLayers[i]+1)) || (theRecHitLayers[k] < (BarrelLayerNumber-1) && theRecHitLayers[l] == (theRecHitLayers[k]+1)))
+                            //continue;
+                        BendingFilter.push_back(BendingPhiIndexType(theRecHitLayers[i], theRecHitLayers[j], theRecHitLayers[k], theRecHitLayers[l]));
+                    }
+                    
     BendingPhiCollection.clear();
     for(unsigned int Index = 0; Index < BendingFilter.size(); Index++) {
         int i = BendingFilter[Index].m[0];
         int j = BendingFilter[Index].m[1];
         int k = BendingFilter[Index].m[2];
         int l = BendingFilter[Index].m[3];
-
+        /*
         Geom::Phi<float> PhiI2J;
         Geom::Phi<float> PhiK2L;
         if(i != j)
@@ -439,6 +399,8 @@ void RPCSeedPattern::createPattern() {
         // vertex bendingPhi is reverse w.r.t normal case
         if(i == j)
             TempBendingPhi *= -1.;
+        */
+        double TempBendingPhi = getdPhi(i,j,k,l);
         BendingPhiCollection.push_back(TempBendingPhi);
     }
     BendingPhiMax = findMaxBendingPhi();
@@ -448,7 +410,25 @@ void RPCSeedPattern::createPattern() {
     isPatternChecked = false;
 }
 
-void RPCSeedPattern::checkDoubleSegmentPattern() {
+double RPCSeedPattern::getdPhi(int i, int j, int k, int l) {
+
+    Geom::Phi<float> PhiI2J;
+    Geom::Phi<float> PhiK2L;
+    if(i != j)
+        PhiI2J = ((GlobalVector)(theRecHitPosition[j] - theRecHitPosition[i])).phi();
+    else
+        PhiI2J = ((GlobalVector)(theRecHitPosition[j] - GlobalPoint(0,0,0))).phi();
+    PhiK2L = ((GlobalVector)(theRecHitPosition[l] - theRecHitPosition[k])).phi();
+    double TempBendingPhi = (PhiK2L - PhiI2J).value();
+    // vertex bendingPhi is reverse w.r.t normal case
+    if(i == j)
+        TempBendingPhi *= -1.;
+    
+    return TempBendingPhi;
+}
+
+void RPCSeedPattern::checkRPCPattern() {
+
     if(isPatternChecked == true)
         return;
 
@@ -456,82 +436,51 @@ void RPCSeedPattern::checkDoubleSegmentPattern() {
 
     isGoodPattern = 1;
 
-    if(Algorithm <= 0 || Algorithm > 6)
-        isGoodPattern = -1;
+    if(isVertexConstraint == true) {
+        // choose different and far way RPCLayer for small widthing and less reverse bending in validating bendingPhi, Val0 and Val1 are for exhaustive bending correction, wihle Val2 is for patterns not redundent enough to filter a possible wrong bending
+        double BendingPhiVal0 = getdPhi(theRecHitLayers[0],theRecHitLayers[0],theRecHitLayers[0],theRecHitLayers[theRecHitLayers.size()-2]);
+        double BendingPhiVal1 = getdPhi(theRecHitLayers[1],theRecHitLayers[1],theRecHitLayers[1],theRecHitLayers[theRecHitLayers.size()-1]);
+        double BendingPhiVal2 = getdPhi(theRecHitLayers[0],theRecHitLayers[0],theRecHitLayers[0],theRecHitLayers[theRecHitLayers.size()-1]);
 
-    if(fabs(BendingPhiCollection[0]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
-        isGoodPattern = -1;
+        // filter small reverse bending if needed
+        if(fabs(BendingPhiMax) < CutMax[Algorithm-1] || fabs(BendingPhiVal0) < Cut0[Algorithm-1] || fabs(BendingPhiVal1) < Cut1[Algorithm-1] || fabs(BendingPhiVal2) < Cut2[Algorithm-1]) {
+            if(debug) cout << "block by BendingPhiTH." << endl;
+            isGoodPattern = -1;
+        }
 
-    if(isVertexConstraint == false) {
         if(applyFilter == true)
-            if(BendingPhiCollection[0]*BendingPhiCollection[2] < 0.)
-                isGoodPattern = -1;
-    }
-    else {
-        if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
-            if(applyFilter == true) {
-                if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. || BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.) {
-                    if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0. && BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-2] < 0.)
-                        BendingPhiMax *= -1.;
-                    else
-                        isGoodPattern = -1;
-                }
-            }
-            else
-                isGoodPattern = -1;
-        }
-    }
-
-    // Check the Z direction
-    if(debug) cout << "Check ZDirection is :" << ZDirection << endl;
-    for(ConstMuonRecHitContainer::const_iterator iter = theRecHits.begin(); iter != (theRecHits.end()-1); iter++) {
-        if(ZDirection == 0) {
-            if(fabs((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z()) > ZError) {
-                if(debug) cout << "Pattern find error in Z direction: wrong perpendicular direction" << endl;
-                isGoodPattern = -1;
-            }
-        }
-        else {
-            if((int)(((*(iter+1))->globalPosition().z()-(*iter)->globalPosition().z())/ZError)*ZDirection < 0) {
-                if(debug) cout << "Pattern find error in Z direction: wrong Z direction" << endl;
-                isGoodPattern = -1;
-            }
-        }
-    }
-
-    isPatternChecked = true;
-}
-
-void RPCSeedPattern::checkSingleSegmentPattern() {
-
-    if(isPatternChecked == true)
-        return;
-
-    if(debug) cout << "checkSingleSegmentPattern." << endl;
-    isGoodPattern = 1;
-
-    if(Algorithm <= 6 || Algorithm > 14)
-        isGoodPattern = -1;
-
-
-    if(fabs(BendingPhiCollection[BendingPhiCollection.size()-1]) < Cut1234[Algorithm-1] && fabs(BendingPhiMax) < CutMax[Algorithm-1])
-        isGoodPattern = -1;
-
-    if(isVertexConstraint == false) {
-        if(applyFilter == true)
-            if(BendingPhiCollection[0]*(BendingPhiCollection[1]-BendingPhiCollection[0]) < 0.)
-                isGoodPattern = -1;
-    }
-    else {
-        if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1]) {
-            if(applyFilter == true) {
-                if(BendingPhiMax*BendingPhiCollection[BendingPhiCollection.size()-1] < 0.) {
+            if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
+                // only below the ExhaustivePhiTH we correct the BendingPhiMax, or it should come from a noise bias
+                if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1] && Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                    BendingPhiMax *= -1.;
+                else {
+                    if(debug) cout << "block by Filter." << endl;
                     isGoodPattern = -1;
                 }
             }
-            else
-                isGoodPattern = -1;
+    }
+    else {
+        // choose different and far way RPCLayer for small widthing and less reverse bending in validating bendingPhi
+        double BendingPhiVal0 = getdPhi(theRecHitLayers[0],theRecHitLayers[1],theRecHitLayers[1],theRecHitLayers[theRecHitLayers.size()-2]);
+        double BendingPhiVal1 = getdPhi(theRecHitLayers[1],theRecHitLayers[2],theRecHitLayers[2],theRecHitLayers[theRecHitLayers.size()-1]);
+        double BendingPhiVal2 = getdPhi(theRecHitLayers[0],theRecHitLayers[1],theRecHitLayers[1],theRecHitLayers[theRecHitLayers.size()-1]);
+
+        // filter small reverse bending if needed
+        if(fabs(BendingPhiMax) < CutMax[Algorithm-1] || fabs(BendingPhiVal0) < Cut0[Algorithm-1] || fabs(BendingPhiVal1) < Cut1[Algorithm-1] || fabs(BendingPhiVal2) < Cut2[Algorithm-1]) {
+            if(debug) cout << "block by BendingPhiTH." << endl;
+            isGoodPattern = -1;
         }
+
+        if(applyFilter == true)
+            if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1])
+                if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
+                    if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                        BendingPhiMax *= -1.;
+                    else {
+                        if(debug) cout << "block by Filter." << endl;
+                        isGoodPattern = -1;
+                    }
+                }
     }
 
     // Check the Z direction
@@ -554,7 +503,7 @@ void RPCSeedPattern::checkSingleSegmentPattern() {
     isPatternChecked = true;
 }
 
-void RPCSeedPattern::computeSegmentPattern() {
+void RPCSeedPattern::computeRPCPattern() {
     if(isGoodPattern < 0 || isPatternChecked == false) {
         if(debug) cout << "Pattern not pass filter." << endl;
         BendingWise = 0;
@@ -603,7 +552,6 @@ void RPCSeedPattern::computeSegmentPattern() {
         MeanPt = LowerLimitMeanPt;
         SigmaPt = LowerLimitSigmaPt;
     }
-
 
     //GlobalVector RefSegmentVector = GlobalVector((RefSegment.second)->globalPosition() - (RefSegment.first)->globalPosition());
     //GlobalVector InitialPt = GlobalVector(RefSegmentVector.x(), RefSegmentVector.y(), 0);

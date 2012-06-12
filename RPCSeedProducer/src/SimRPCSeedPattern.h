@@ -47,10 +47,10 @@ class SimRPCSeedPattern {
     void mapRecHittoSimHit();
     int checkAlgorithm();
     bool checkParameters(unsigned int theAlgorithmType);
-    void createPattern();
+    void createRPCPattern();
+    double getdPhi(int i, int j, int k, int l);
     double findMaxBendingPhi();
-    void checkDoubleSegmentPattern();
-    void checkSingleSegmentPattern();
+    void checkRPCPattern();
     void computePatternfromSimData();
     void checkPatternfromSimData();
     void measureRecHitandMagneticField();
@@ -82,7 +82,9 @@ class SimRPCSeedPattern {
     bool isVertexConstraint;
     bool isContinuousFilter;
     bool applyFilter;
-    std::vector<double> Cut1234;
+    std::vector<double> Cut0;
+    std::vector<double> Cut1;
+    std::vector<double> Cut2;
     std::vector<double> CutMax;
     std::vector<double> BendingPhiLowerTH;
     std::vector<double> BendingPhiUpperTH;

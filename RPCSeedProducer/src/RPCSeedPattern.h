@@ -49,10 +49,10 @@ class RPCSeedPattern {
     WeightedTrajectorySeed seed(const edm::EventSetup& eSetup, int& isGoodSeed); 
     int checkAlgorithm();
     bool checkParameters(unsigned int theAlgorithmType);
-    void createPattern();
-    void checkDoubleSegmentPattern();
-    void checkSingleSegmentPattern();
-    void computeSegmentPattern();
+    void createRPCPattern();
+    void checkRPCPattern();
+    void computeRPCPattern();
+    double getdPhi(int i, int j, int k, int l);
     GlobalVector correctPhiatRef();
     double findMaxBendingPhi();
     void measureRecHitandMagneticField();
@@ -73,7 +73,9 @@ class RPCSeedPattern {
     bool isVertexConstraint;
     bool isContinuousFilter;
     bool applyFilter;
-    std::vector<double> Cut1234;
+    std::vector<double> Cut0;
+    std::vector<double> Cut1;
+    std::vector<double> Cut2;
     std::vector<double> CutMax;
     std::vector<double> BendingPhiLowerTH;
     std::vector<double> BendingPhiUpperTH;
