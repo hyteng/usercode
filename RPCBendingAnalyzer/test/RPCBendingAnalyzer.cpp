@@ -50,7 +50,7 @@ class RPCBendingAnalyzer {
     public:
         RPCBendingAnalyzer();
         ~RPCBendingAnalyzer();
-        void setParameters(string FileNamePara, string DrawOptionPara, int PatternTypePara, double PtScalePara, double BendingWiseCheckPara, double SegmentBendingCut0Para, double SegmentBendingCut1Para, double MaxBendingCutPara, bool applyFilterPara);
+        void setParameters(string FileNamePara, string DrawOptionPara, int PatternTypePara, double PtScalePara, double BendingWiseCheckPara, double SegmentBendingCut0Para, double SegmentBendingCut1Para, double SegmentBendingCut2Para, double MaxBendingCutPara, bool applyFilterPara);
         void analyze(double thePhiC2R=-1.);
         void getEventRato(double theFitPtRange);
         void fitPtofPhi(string fitType, double thePhiF2P, double startPhiforMean, double endPhiforMean, double startPhiforSigma, double endPhiforSigma);
@@ -86,6 +86,7 @@ class RPCBendingAnalyzer {
         double PtScale;
         double SegmentBendingCut0;
         double SegmentBendingCut1;
+        double SegmentBendingCut2;
         double MaxBendingCut;
         bool applyFilter;
         double BendingWiseCheck; // -1.: only reverse. 1.: only coverse. 0.: both
@@ -98,8 +99,8 @@ class RPCBendingAnalyzer {
         double PhiF2P;
         double RatoThresoldC2R;
         double RatoThresoldF2P;
-        std::vector<int> BendingPhiMaxFilter[8];
-        std::map<int, int> BendingPhiMaxFilterMap[8]; // map is much faster than vector in searching function
+        std::vector<int> BendingPhiMaxFilter[15];
+        std::map<int, int> BendingPhiMaxFilterMap[15]; // map is much faster than vector in searching function
 
         string PatternFix;
         string CutFix;
@@ -127,7 +128,7 @@ RPCBendingAnalyzer::RPCBendingAnalyzer() {
 RPCBendingAnalyzer::~RPCBendingAnalyzer() {
 }
 
-void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPara, int PatternTypePara, double PtScalePara, double BendingWiseCheckPara, double SegmentBendingCut0Para, double SegmentBendingCut1Para, double MaxBendingCutPara, bool applyFilterPara) {
+void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPara, int PatternTypePara, double PtScalePara, double BendingWiseCheckPara, double SegmentBendingCut0Para, double SegmentBendingCut1Para, double SegmentBendingCut2Para, double MaxBendingCutPara, bool applyFilterPara) {
 
     if(debug) cout << FileNamePara << endl;
 
@@ -135,6 +136,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     PtScale = PtScalePara;
     SegmentBendingCut0 = SegmentBendingCut0Para;
     SegmentBendingCut1 = SegmentBendingCut1Para;
+    SegmentBendingCut2 = SegmentBendingCut2Para;
     MaxBendingCut = MaxBendingCutPara;
     applyFilter = applyFilterPara;
     BendingWiseCheck = BendingWiseCheckPara;
@@ -146,7 +148,7 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     gStyle->SetOptTitle(0);
     gStyle->SetOptStat("");
 
-    if(debug) cout << "PatternType: " << PatternType << ", Draw option: " << theDrawOption << ", PtScale: " << PtScale << ", BendingWiseCheck: " << BendingWiseCheck << ", SegmentBendingCut0: " << SegmentBendingCut0 << ", SegmentBendingCut1: " << SegmentBendingCut1 << ", MaxBendingCut: " << MaxBendingCut << ", applyFilter: " << applyFilter << endl;
+    if(debug) cout << "PatternType: " << PatternType << ", Draw option: " << theDrawOption << ", PtScale: " << PtScale << ", BendingWiseCheck: " << BendingWiseCheck << ", SegmentBendingCut0: " << SegmentBendingCut0 << ", SegmentBendingCut1: " << SegmentBendingCut1 << ", SegmentBendingCut2: " << SegmentBendingCut2 << ", MaxBendingCut: " << MaxBendingCut << ", applyFilter: " << applyFilter << endl;
 
     std::stringstream TempPtScale;
     TempPtScale << PtScale;
@@ -186,6 +188,14 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
         TempCut << SegmentBendingCut1;
         string Cut = TempCut.str();
         CutFix += "Cut1>" + Cut + "_";
+    }
+    if(SegmentBendingCut2 == 0.)
+        CutFix += "noCut2_";
+    else {
+        std::stringstream TempCut;
+        TempCut << SegmentBendingCut2;
+        string Cut = TempCut.str();
+        CutFix += "Cut2>" + Cut + "_";
     }
 
     
@@ -302,9 +312,9 @@ void RPCBendingAnalyzer::setParameters(string FileNamePara, string DrawOptionPar
     }
     // barrel without vertex
     if(PatternType%10 == 0) {
-        for(int i = 0; i < SampleLayerCollection.size()-3; i++)
-            for(int j = i+1; j < SampleLayerCollection.size()-2; j++)
-                for(int k = j+1; k < SampleLayerCollection.size()-1; k++)
+        for(int i = 0; i < SampleLayerCollection.size()-2; i++)
+            for(int j = i+1; j < SampleLayerCollection.size()-1; j++)
+                for(int k = j; k < SampleLayerCollection.size()-1; k++)
                     for(int l = k+1; l < SampleLayerCollection.size(); l++) {
                         // close layers bring in large widthing
                         if(SampleLayerCollection[j] == (SampleLayerCollection[i]+1) || SampleLayerCollection[l] == (SampleLayerCollection[k]+1))
@@ -403,9 +413,10 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
             // choose different and far way RPCLayer for small widthing and less reverse bending in validating bendingPhi
             double BendingPhiVal0 = getdPhi(recHitBendingPhi[SampleLayerCollection[0]][SampleLayerCollection[SampleLayerCollection.size()-2]], recHitBendingPhi[SampleLayerCollection[0]][SampleLayerCollection[0]]);
             double BendingPhiVal1 = getdPhi(recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[SampleLayerCollection.size()-1]], recHitBendingPhi[SampleLayerCollection[1]][SampleLayerCollection[1]]);
+            double BendingPhiVal2 = getdPhi(recHitBendingPhi[SampleLayerCollection[0]][SampleLayerCollection[SampleLayerCollection.size()-1]], recHitBendingPhi[SampleLayerCollection[0]][SampleLayerCollection[0]]);
             
             // filter small reverse bending if needed
-            if(fabs(recBendingPhiMax) < MaxBendingCut || fabs(BendingPhiVal0) < SegmentBendingCut0 || fabs(BendingPhiVal1) < SegmentBendingCut1) {
+            if(fabs(recBendingPhiMax) < MaxBendingCut || fabs(BendingPhiVal0) < SegmentBendingCut0 || fabs(BendingPhiVal1) < SegmentBendingCut1 || fabs(BendingPhiVal2) < SegmentBendingCut2) {
                 if(debug) cout << "block by BendingPhiTH." << endl;
                 continue;
             }
@@ -417,8 +428,8 @@ void RPCBendingAnalyzer::analyze(double thePhiC2R) {
             // check and correct reverse bending
             if(applyFilter == true)
                 //if(fabs(recBendingPhiMax) < PhiC2R)
-                    if((recBendingPhiMax * BendingPhiVal0 < 0. && SegmentBendingCut0 > 0.) || (recBendingPhiMax * BendingPhiVal1 < 0. && SegmentBendingCut1 > 0.)) {
-                        if(SegmentBendingCut0 > 0. && SegmentBendingCut1 > 0. && recBendingPhiMax * BendingPhiVal0 < 0. && recBendingPhiMax * BendingPhiVal1 < 0.)
+                    if((recBendingPhiMax * BendingPhiVal0 > 0. && SegmentBendingCut0 > 0.) || (recBendingPhiMax * BendingPhiVal1 > 0. && SegmentBendingCut1 > 0.) || (recBendingPhiMax * BendingPhiVal2 > 0. && SegmentBendingCut2 > 0.)) {
+                        if(fabs(recBendingPhiMax) <= PhiC2R && SegmentBendingCut0 > 0. && SegmentBendingCut1 > 0. && recBendingPhiMax * BendingPhiVal0 > 0. && recBendingPhiMax * BendingPhiVal1 > 0.)
                             recBendingPhiMax *= -1.;
                         else {
                             if(debug) cout << "block by Filter." << endl;
@@ -740,6 +751,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
     for(int index = (int)(PhiBinNumber/2)+1; index <= PhiBinNumber; index++) {
         double PhiValue = (double)(index) * PhiBinWidth + PhiLowEdge - PhiBinWidth * 0.5;
 
+        // check only fit region
         if(PhiValue < BendingPhiLowerLimit)
             continue;
 
@@ -752,7 +764,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
         TH1D* PtofPhiHist = recHitBendingPhiMaxHist->ProjectionX(PtofPhiHistName.c_str(), index, index, "o");
         double TotalEvent = 0.;
         double StartPtValue = 0.;
-        double EndPtValue = WorkPtRange;
+        double EndPtValue = WorkPtRange;//PtScale;
         for(int PtIndex = (int)(PtBinNumber/2)+1; PtIndex <= PtBinNumber; PtIndex++) {
 
             double PtValue = (double)(PtIndex) * PtBinWidth + PtLowEdge - PtBinWidth * 0.5;
@@ -767,6 +779,12 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
 
         string FitName = "PtofPhi_Fit_" + fitType;
         TF1* Fit0 = new TF1(FitName.c_str(), fitType.c_str(), StartPtValue, EndPtValue);
+        TCanvas* PtofPhiCanvas = new TCanvas(PtofPhiHistName.c_str(), PtofPhiHistName.c_str(), 800, 600);
+        PtofPhiCanvas->cd();
+        TPad* PtofPhiPad = new TPad(PtofPhiHistName.c_str(), PtofPhiHistName.c_str(), 0, 0, 1, 1);
+        PtofPhiPad->Draw();
+        PtofPhiPad->cd();
+        /*
         double theHistMaxValue = PtofPhiHist->GetBinContent(PtofPhiHist->GetMaximumBin());
         double theHistMaxBinCenter = PtofPhiHist->GetBinCenter(PtofPhiHist->GetMaximumBin());
         Fit0->SetParameter(0, theHistMaxValue);
@@ -785,7 +803,7 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
         Fit0->Draw("same");
         SaveName = FitHistName + PtofPhiHistName + OutputFix;
         PtofPhiCanvas->SaveAs(SaveName.c_str());
-
+        */
         int NewBinNumber = 5;
         string FinalPtofPhiHistName = "PtofPhiHist_Final_" + PhiIndex;
         TH1D* FinalPtofPhiHist = (TH1D*)PtofPhiHist->Rebin(NewBinNumber, FinalPtofPhiHistName.c_str());
@@ -835,13 +853,14 @@ void RPCBendingAnalyzer::fitPtofPhi(string fitType, double thePhiF2P, double sta
         if(debug) cout << "FinalChiSquare: " << FinalChiSquare << ", FinalMean: " << FinalMean << ", FinalSigma:" << FinalSigma << endl;
         // when fitting fail Mean will over PtScale range, while Sigma keep in same level. we confirm this from Fit plots
         bool isFinalCorrected = false;
-        if(FinalMean < 0. || FinalMean > WorkPtRange ) { //|| FinalReducedChi3 > Chi2TH) { 
+        
+        if(FinalMean <= 0. || FinalMean >= WorkPtRange ) { //|| FinalReducedChi3 > Chi2TH) { 
             FinalMean = theFinalHistMaxBinCenter;
             FinalSigma = FinalMean / 5.;
             isFinalCorrected = true;
             if(debug) cout << "Correct Final: " << FinalMean << ", " << FinalSigma << endl;
         }
-
+        
         gStyle->SetOptFit(1111);
         PtofPhiCanvas->cd();
         PtofPhiPad->cd();
