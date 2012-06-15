@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/10 06:50:51 $
- *  $Revision: 1.10 $
+ *  $Date: 2012/06/12 08:29:48 $
+ *  $Revision: 1.11 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -375,6 +375,8 @@ int SimRPCSeedPattern::checkAlgorithm() {
         AlgorithmChoice.push_back(13);
     if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode14)
         AlgorithmChoice.push_back(14);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode15)
+        AlgorithmChoice.push_back(15);
 
 
     // Auto choice or manual choise
