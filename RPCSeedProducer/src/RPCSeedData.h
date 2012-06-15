@@ -89,15 +89,15 @@
 #endif
 
 #ifndef UpperLimitSigmaPt2
-#define UpperLimitSigmaPt2 20.0
+#define UpperLimitSigmaPt2 10.0
 #endif
 
 #ifndef UpperLimitMeanPt1
-#define UpperLimitMeanPt1 20.0
+#define UpperLimitMeanPt1 30.0
 #endif
 
 #ifndef UpperLimitSigmaPt1 
-#define UpperLimitSigmaPt1 5.0
+#define UpperLimitSigmaPt1 6.0
 #endif
 
 #ifndef LowerLimitMeanPt

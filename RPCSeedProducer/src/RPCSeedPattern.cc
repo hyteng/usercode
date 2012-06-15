@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/10 06:50:51 $
- *  $Revision: 1.13 $
+ *  $Date: 2012/06/12 08:29:48 $
+ *  $Revision: 1.15 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -449,9 +449,9 @@ void RPCSeedPattern::checkRPCPattern() {
         }
 
         if(applyFilter == true)
-            if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
+            if((BendingPhiMax * BendingPhiVal0 < 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 < 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 < 0. && Cut2[Algorithm-1] > 0.)) {
                 // only below the ExhaustivePhiTH we correct the BendingPhiMax, or it should come from a noise bias
-                if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1] && Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1] && Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 < 0. && BendingPhiMax * BendingPhiVal1 < 0.)
                     BendingPhiMax *= -1.;
                 else {
                     if(debug) cout << "block by Filter." << endl;
@@ -473,8 +473,8 @@ void RPCSeedPattern::checkRPCPattern() {
 
         if(applyFilter == true)
             if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1])
-                if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
-                    if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                if((BendingPhiMax * BendingPhiVal0 < 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 < 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 < 0. && Cut2[Algorithm-1] > 0.)) {
+                    if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 < 0. && BendingPhiMax * BendingPhiVal1 < 0.)
                         BendingPhiMax *= -1.;
                     else {
                         if(debug) cout << "block by Filter." << endl;
