@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Thu Nov 20 01:40:00 CET 2008
-// $Id: RPCSeedValidator.cc,v 1.4 2012/05/12 23:51:21 hyteng Exp $
+// $Id: RPCSeedValidator.cc,v 1.5 2012/05/31 20:56:41 hyteng Exp $
 //
 //
 
@@ -86,7 +86,7 @@ class RPCSeedValidator : public edm::EDAnalyzer {
         void getTrackInfo(const SimTrack& theSimTrack);
         void findSeedforTrack();
         void findSimHitfromSeedRecHit(const edm::ESHandle<RPCGeometry>& theRPCGeometry, std::vector<GlobalPoint>& SimHitRPCPos, std::vector<GlobalPoint>& RecHitRPCPos, const std::vector<GlobalPoint>& SimHitPositionCollection, const std::vector<unsigned int>& RecHitNumberforSimHits, const std::vector<RPCRecHit>& RPCRecHitsfromTrack, const std::vector<GlobalPoint>& SeedRecHitPositionCollection);
-        bool SegmentFilter(int theFilterType);
+        bool SegmentFilter();
         void scanOnePointCollection(int RPCLayer);
         void getBendingPhiCandidate();
         int getRPCLayer(const RPCRecHit& theRPCRecHit);
@@ -218,6 +218,7 @@ RPCSeedValidator::RPCSeedValidator(const edm::ParameterSet& iConfig) {
     ExTree->Branch("SimTrackDirectionEta", &SimTrackDirectionEta, "SimTrackDirectionEta/D");
     ExTree->Branch("SimTrackCharge", &SimTrackCharge, "SimTrackCharge/I");
     ExTree->Branch("SimTrackValid", &SimTrackValid, "SimTrackValid/I");
+    ExTree->Branch("theCode", &theCode, "theCode/i");
     ExTree->Branch("PassSegmentFilter", &PassSegmentFilter, "PassSegmentFilter/O");
     ExTree->Branch("SimMomentumPtatRef", &SimMomentumPtatRef, "SimMomentumPtatRef/D");
     ExTree->Branch("SimDirectionPhiatRef", &SimDirectionPhiatRef, "SimDirectionPhiatRef/D");
@@ -424,7 +425,7 @@ void RPCSeedValidator::getTrackInfo(const SimTrack& theSimTrack) {
 
     if((RecHitNumber >= RecHitNumberTH) && (((int)theCode & (int)CodeTH) == (int)CodeTH) && ((int)theCode & (int)unCodeTH) != 0) {
         SimTrackValid = 1;
-        PassSegmentFilter = SegmentFilter(FilterType);
+        PassSegmentFilter = SegmentFilter();
     }
     else {
         SimTrackValid = 0;
@@ -614,7 +615,7 @@ int RPCSeedValidator::getRPCLayer(const RPCRecHit& theRPCRecHit) {
     return theRPCLayer;
 }
 
-bool RPCSeedValidator::SegmentFilter(int theFilterType) {
+bool RPCSeedValidator::SegmentFilter() {
 
     RPCRecHitLayer.clear();
     for(unsigned int i = 0; i < 11; i++) {
