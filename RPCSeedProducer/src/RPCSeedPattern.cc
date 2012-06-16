@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/15 06:25:48 $
- *  $Revision: 1.16 $
+ *  $Date: 2012/06/15 16:31:56 $
+ *  $Revision: 1.17 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -198,7 +198,7 @@ void RPCSeedPattern::measureRecHitandMagneticField() {
     else
         DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
 
-    if(fabs(DistanceZ) > ZError) {
+    if(fabs(DistanceZ) > ZError || isVertexConstraint == true) {
         if(DistanceZ > ZError)
             ZDirection = 1;
         else
