@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/15 16:31:56 $
- *  $Revision: 1.17 $
+ *  $Date: 2012/06/16 02:55:11 $
+ *  $Revision: 1.18 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -141,7 +141,7 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
 
     Algorithm = checkAlgorithm();
     createRPCPattern();
-    if(Algorithm <= 28 && Algorithm >= 1)
+    if(Algorithm <= 30 && Algorithm >= 1)
         checkRPCPattern();
 
     computeRPCPattern();
@@ -198,14 +198,13 @@ void RPCSeedPattern::measureRecHitandMagneticField() {
     else
         DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
 
+    ZDirection = 0;
     if(fabs(DistanceZ) > ZError || isVertexConstraint == true) {
         if(DistanceZ > ZError)
             ZDirection = 1;
         else
             ZDirection = -1;
     }
-    else
-        ZDirection = 0;
 
     if(debug) cout << "MeanMagneticField: " << MeanMagneticField << ". DistanceXY: " << DistanceXY << ", DistanceZ: " << DistanceZ << endl;
 }

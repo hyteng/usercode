@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/12 08:29:48 $
- *  $Revision: 1.11 $
+ *  $Date: 2012/06/15 16:31:56 $
+ *  $Revision: 1.12 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -152,7 +152,7 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::seed(const edm::Eve
 
     Algorithm = checkAlgorithm();
     createRPCPattern();
-    if(Algorithm >= 1 && Algorithm <= 28)
+    if(Algorithm >= 1 && Algorithm <= 30)
         checkRPCPattern();
 
     computePatternfromSimData();        
@@ -270,14 +270,13 @@ void SimRPCSeedPattern::measureRecHitandMagneticField() {
     else
         DistanceZ = theRecHits[theRecHits.size()-1]->globalPosition().z() - theRecHits[0]->globalPosition().z();
     
-    if(fabs(DistanceZ) > ZError) { 
+    ZDirection = 0;
+    if(fabs(DistanceZ) > ZError || isVertexConstraint == true) { 
         if(DistanceZ > ZError)
             ZDirection = 1; 
         else
             ZDirection = -1;
     }   
-    else 
-        ZDirection = 0;
 
     if(debug) cout << "MeanMagneticField: " << MeanMagneticField << ". DistanceXY: " << DistanceXY << ", DistanceZ: " << DistanceZ << endl;
 }
