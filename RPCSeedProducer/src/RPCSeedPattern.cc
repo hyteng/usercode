@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/16 02:55:11 $
- *  $Revision: 1.18 $
+ *  $Date: 2012/06/16 05:37:50 $
+ *  $Revision: 1.19 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -141,7 +141,7 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::seed(const edm::EventSetu
 
     Algorithm = checkAlgorithm();
     createRPCPattern();
-    if(Algorithm <= 30 && Algorithm >= 1)
+    if(Algorithm >= 1)
         checkRPCPattern();
 
     computeRPCPattern();
@@ -305,6 +305,15 @@ int RPCSeedPattern::checkAlgorithm() {
         AlgorithmChoice.push_back(14);
     if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode15)
         AlgorithmChoice.push_back(15);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode16)
+        AlgorithmChoice.push_back(16);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode17)
+        AlgorithmChoice.push_back(17);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode18)
+        AlgorithmChoice.push_back(18);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode19)
+        AlgorithmChoice.push_back(19);
+
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
     if(AlgorithmType == 0 && AlgorithmChoice.size() > 0) {

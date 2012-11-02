@@ -83,6 +83,21 @@
 #define BarrelPatternCode15 60 // 111100=RPCLayer2345
 #endif
 
+#ifndef BarrelPatternCode16
+#define BarrelPatternCode16 21 // 010101=RPCLayer024
+#endif
+
+#ifndef BarrelPatternCode17
+#define BarrelPatternCode17 37 // 100101=RPCLayer025
+#endif
+
+#ifndef BarrelPatternCode18
+#define BarrelPatternCode18 41 // 101001=RPCLayer035
+#endif
+
+#ifndef BarrelPatternCode19
+#define BarrelPatternCode19 42 // 111100=RPCLayer135
+#endif
 
 #ifndef UpperLimitMeanPt2
 #define UpperLimitMeanPt2 50.0
