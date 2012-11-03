@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/16 05:37:50 $
- *  $Revision: 1.19 $
+ *  $Date: 2012/11/02 12:42:46 $
+ *  $Revision: 1.20 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -481,7 +481,7 @@ void RPCSeedPattern::checkRPCPattern() {
         }
 
         if(applyFilter == true)
-            if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1])
+            //if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1])
                 if((BendingPhiMax * BendingPhiVal0 < 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 < 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 < 0. && Cut2[Algorithm-1] > 0.)) {
                     if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 < 0. && BendingPhiMax * BendingPhiVal1 < 0.)
                         BendingPhiMax *= -1.;
