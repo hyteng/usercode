@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/11/02 12:42:46 $
- *  $Revision: 1.20 $
+ *  $Date: 2012/11/03 03:11:21 $
+ *  $Revision: 1.21 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -621,25 +621,30 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::createFakeSeed(int& isGoo
     AlgebraicSymMatrix theErrorMatrix(5,0);
     theErrorMatrix = theRefRecHit->parametersError().similarityT(theRefRecHit->projectionMatrix());
     theErrorMatrix[0][0] = 0.;
-    LocalTrajectoryError theLTE(theErrorMatrix);
+    double dX = sqrt(theErrorMatrix[3][3]);
+    double dY = sqrt(theErrorMatrix[4][4]);
+    double dXdZ = sqrt(theErrorMatrix[1][1]);
+    double dYdZ = sqrt(theErrorMatrix[2][2]);
+    double dPInv = sqrt(theErrorMatrix[0][0]);
+    LocalTrajectoryError theLTE(dX, dY, dXdZ, dYdZ, dPInv);
 
     TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
 
     DetId theDetId = theRefRecHit->geographicalId();
-    TrajectoryStateTransform theTST;
-    PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
+    //TrajectoryStateTransform theTST;
+    PTrajectoryStateOnDet SeedTSOS = trajectoryStateTransform::persistentState(theTSOS, theDetId.rawId());
 
     edm::OwnVector<TrackingRecHit> container;
     for(ConstMuonRecHitContainer::const_iterator iter=theRecHits.begin(); iter!=theRecHits.end(); iter++)
         container.push_back((*iter)->hit()->clone());
 
-    TrajectorySeed theSeed(*seedTSOS, container, alongMomentum);
+    TrajectorySeed theSeed(SeedTSOS, container, alongMomentum);
     WeightedTrajectorySeed theWeightedSeed;
     theWeightedSeed.first = theSeed;
     theWeightedSeed.second = PatternQuality;
     isGoodSeed = isGoodPattern;
 
-    delete seedTSOS;
+    //delete SeedTSOS;
     return theWeightedSeed;
 }
 
@@ -660,8 +665,8 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::createSeed(int& isGoodSee
 
     TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
     DetId theDetId = theRefRecHit->geographicalId();
-    TrajectoryStateTransform theTST;
-    PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
+    //TrajectoryStateTransform theTST;
+    PTrajectoryStateOnDet SeedTSOS = trajectoryStateTransform::persistentState(theTSOS, theDetId.rawId());
 
     edm::OwnVector<TrackingRecHit> container;
     for(ConstMuonRecHitContainer::const_iterator iter=theRecHits.begin(); iter!=theRecHits.end(); iter++) {
@@ -672,24 +677,24 @@ RPCSeedPattern::WeightedTrajectorySeed RPCSeedPattern::createSeed(int& isGoodSee
         container.push_back((*iter)->hit()->clone());
     }
 
-    TrajectorySeed theSeed(*seedTSOS, container, alongMomentum);
+    TrajectorySeed theSeed(SeedTSOS, container, alongMomentum);
     WeightedTrajectorySeed theWeightedSeed;
     theWeightedSeed.first = theSeed;
     theWeightedSeed.second = PatternQuality;
     isGoodSeed = isGoodPattern;
 
-    delete seedTSOS;
+    //delete SeedTSOS;
     return theWeightedSeed;
 }
 
 LocalTrajectoryError RPCSeedPattern::getErrorMatrix() {
 
     // for possable lack of error matrix element[i][j], we use 5 parameter to construct theLTE;
-    double dX = 0;
-    double dY = 0;
-    double dXdZ = 0;
-    double dYdZ = 0;
-    double dPInv = 0;
+    double dX = 0.;
+    double dY = 0.;
+    double dXdZ = 0.;
+    double dYdZ = 0.;
+    double dPInv = 0.;
 
     // trackingrecHit from RPC should have projectionMatrix of 5*1 with only P[3]=1 for dx error, but not sure for that, so we extract dX and dY from the error matrix for construct local trajectory error.
     // projectionMatrix is used to project the track's full error vector (1/dP, dXdZ, dYdZ, dX, dY) the sub detector's error dimension(<5), since some detector does not have ability for direction/2D measurement, e.g. CSCSegment only provide direction and position, which has error like (dXdZ, dYdZ, dX, dY), so it's projectionMatrix is a 4*5 matrix which project 5D track error vector to its onw 4D space. Formula should be DetErrorVec=P*TrackErrorVec, while P is the projectionMatrix from track measurement space to det measurement space;

@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/15 16:31:56 $
- *  $Revision: 1.12 $
+ *  $Date: 2012/06/16 05:37:50 $
+ *  $Revision: 1.13 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -668,25 +668,30 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createFakeSeed(int&
     AlgebraicSymMatrix theErrorMatrix(5,0);
     theErrorMatrix = theRefRecHit->parametersError().similarityT(theRefRecHit->projectionMatrix());
     theErrorMatrix[0][0] = 0.;
-    LocalTrajectoryError theLTE(theErrorMatrix);
+    double dX = sqrt(theErrorMatrix[3][3]);
+    double dY = sqrt(theErrorMatrix[4][4]);
+    double dXdZ = sqrt(theErrorMatrix[1][1]);
+    double dYdZ = sqrt(theErrorMatrix[2][2]);
+    double dPInv = sqrt(theErrorMatrix[0][0]);
+    LocalTrajectoryError theLTE(dX, dY, dXdZ, dYdZ, dPInv);
 
     TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
 
     DetId theDetId = theRefRecHit->geographicalId();
-    TrajectoryStateTransform theTST;
-    PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
+    //TrajectoryStateTransform theTST;
+    PTrajectoryStateOnDet SeedTSOS = trajectoryStateTransform::persistentState(theTSOS, theDetId.rawId());
 
     edm::OwnVector<TrackingRecHit> container;
     for(ConstMuonRecHitContainer::const_iterator iter=theRecHits.begin(); iter!=theRecHits.end(); iter++)
         container.push_back((*iter)->hit()->clone());
 
-    TrajectorySeed theSeed(*seedTSOS, container, alongMomentum);
+    TrajectorySeed theSeed(SeedTSOS, container, alongMomentum);
     WeightedTrajectorySeed theWeightedSeed;
     theWeightedSeed.first = theSeed;
     theWeightedSeed.second = PatternQuality;
     isGoodSeed = isGoodPattern;
 
-    delete seedTSOS;
+    //delete SeedTSOS;
     return theWeightedSeed;
 }
 
@@ -707,8 +712,8 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createSeed(int& isG
     LocalTrajectoryError theLTE = getErrorMatrix();
     TrajectoryStateOnSurface theTSOS(theLTP, theLTE, theRefRecHit->det()->surface(), &*theMagneticField);
     DetId theDetId = theRefRecHit->geographicalId();
-    TrajectoryStateTransform theTST;
-    PTrajectoryStateOnDet *seedTSOS = theTST.persistentState(theTSOS, theDetId.rawId());
+    //TrajectoryStateTransform theTST;
+    PTrajectoryStateOnDet SeedTSOS = trajectoryStateTransform::persistentState(theTSOS, theDetId.rawId());
 
     edm::OwnVector<TrackingRecHit> container;
     for(ConstMuonRecHitContainer::const_iterator iter=theRecHits.begin(); iter!=theRecHits.end(); iter++) {
@@ -720,13 +725,13 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::createSeed(int& isG
     }
 
     if(debug) cout << "test" << endl;
-    TrajectorySeed theSeed(*seedTSOS, container, alongMomentum);
+    TrajectorySeed theSeed(SeedTSOS, container, alongMomentum);
     WeightedTrajectorySeed theWeightedSeed;
     theWeightedSeed.first = theSeed;
     theWeightedSeed.second = PatternQuality;
     isGoodSeed = isGoodPattern;
 
-    delete seedTSOS;
+    //delete SeedTSOS;
     return theWeightedSeed;
 }
 
