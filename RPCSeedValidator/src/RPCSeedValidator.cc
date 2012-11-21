@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Thu Nov 20 01:40:00 CET 2008
-// $Id: RPCSeedValidator.cc,v 1.5 2012/05/31 20:56:41 hyteng Exp $
+// $Id: RPCSeedValidator.cc,v 1.6 2012/06/15 17:47:20 hyteng Exp $
 //
 //
 
@@ -505,8 +505,7 @@ void RPCSeedValidator::findSeedforTrack() {
             if(SeedPurity >= SeedPurityTH) {
                 SeedNumber++;
                 LocalVector SeedMomentum = RPCSeedIter->startingState().parameters().momentum();
-                std::vector<float> SeedError = RPCSeedIter->startingState().errorMatrix();
-                SeedQuality = SeedError[0];
+                SeedQuality = RPCSeedIter->startingState().error(0);
                 if(debug) cout << "Find SeedQuality " << SeedQuality << " in this seed for track " << SimTrackId << endl;
                 SeedCharge = RPCSeedIter->startingState().parameters().charge();
                 if(debug) cout << "Charge of Rec is: " << SeedCharge << ", charge of Sim is: " << SimTrackCharge << endl;
@@ -577,8 +576,7 @@ void RPCSeedValidator::findSeedforTrack() {
 
             if(SeedPurity > 0) {
                 SeedNumber++;
-                std::vector<float> SeedError = RPCSeedIter->startingState().errorMatrix();
-                SeedQuality = SeedError[0];
+                SeedQuality = RPCSeedIter->startingState().error(0);
                 if(debug) cout << "Find SeedQuality " << SeedQuality << " in this seed for invailid track " << SimTrackId << endl;
                 SeedCharge = RPCSeedIter->startingState().parameters().charge();
                 if(debug) cout << "Charge of Rec is: " << SeedCharge << ", charge of Sim is: " << SimTrackCharge << endl;
