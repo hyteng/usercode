@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng,591 R-005,+41227671371,
 //         Created:  Thu Aug 26 02:12:18 CEST 2010
-// $Id: RPCBendingAnalyzer.cc,v 1.6 2012/06/06 03:30:46 hyteng Exp $
+// $Id: RPCBendingAnalyzer.cc,v 1.7 2012/06/06 19:35:02 hyteng Exp $
 //
 //
 
@@ -295,9 +295,6 @@ void RPCBendingAnalyzer::getTracksInfo() {
         else
             simTrackvalid = 0;
 
-        if(fabs(simTrackMomentumEta) < 0.3 && fabs(simTrackMomentumEta) > 0.2) {
-        if(debug) cout << "For simTrack " << simTrackIndex << " valid is " << simTrackvalid << ". Core for this track is " << code << ", recHitNumber " << recHitNumber << endl;
-        }
 
         if(simTrackvalid == 1)
             analyzeBending();
