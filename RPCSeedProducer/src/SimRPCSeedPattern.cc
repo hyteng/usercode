@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/06/16 05:37:50 $
- *  $Revision: 1.13 $
+ *  $Date: 2012/11/13 18:05:00 $
+ *  $Revision: 1.14 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -26,6 +26,7 @@
 #include <Geometry/Records/interface/MuonGeometryRecord.h>
 #include <Geometry/CommonDetUnit/interface/GeomDetUnit.h>
 #include <DataFormats/RPCRecHit/interface/RPCRecHit.h>
+
 
 #include "gsl/gsl_statistics.h"
 #include "TH1F.h"
@@ -59,6 +60,12 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     SimHitTag_ = iConfig.getParameter<edm::InputTag>("SimHitTag");
     RPCDigiSimLinkTag_ = iConfig.getParameter<edm::InputTag>("RPCDigiSimLinkTag");
     SeedPurityTH = iConfig.getParameter<double>("SeedPurityTH");
+    SimSigmaPt = iConfig.getParameter<double>("SimSigmaPt");
+    SimBiasPt = iConfig.getParameter<double>("SimBiasPt");
+    SimSigmaEta = iConfig.getParameter<double>("SimSigmaEta");    
+    SimBiasEta = iConfig.getParameter<double>("SimBiasEta");
+    SimSigmaPhi = iConfig.getParameter<double>("SimSigmaPhi");
+    SimBiasPhi = iConfig.getParameter<double>("SimBiasPhi");
     ZError = iConfig.getParameter<double>("ZError");
     MagnecticFieldThreshold = iConfig.getParameter<double>("MagnecticFieldThreshold");
     SampleCount = iConfig.getParameter<unsigned int>("SampleCount");
@@ -286,7 +293,7 @@ int SimRPCSeedPattern::findIntervalIndex() {
     bool findIntervalIndex = false;
     // find the 1st interval with low magnetic field in full range, which lead to a straight segment. Then check if the next interval are with high magnetic field, where the track start the bending.
     for(int Index = 0; Index < (int)IntervalMagneticFlux.size(); Index++) {
-        if(IntervalMagneticFlux[Index] == true && IntervalIndex == -1)
+        if(IntervalMagneticFlux[Index] == true && findIntervalIndex == false)
             IntervalIndex = Index;
         if(IntervalMagneticFlux[Index] == false && IntervalIndex != -1 && IntervalIndex == (Index-1) && findIntervalIndex == false) {
             IntervalIndex = Index;
@@ -327,7 +334,7 @@ int SimRPCSeedPattern::checkAlgorithm() {
     bool isNegativeEndcap = false;
     int theBarrelOccupancyCode = 0;
     int theEndcapOccupancyCode = 0;
-    for(std::vector<unsigned int>::const_iterator LayerIter = theRecHitLayers.begin(); LayerIter != theRecHitLayers.end(); LayerIter++) {
+    for(std::vector<int>::const_iterator LayerIter = theRecHitLayers.begin(); LayerIter != theRecHitLayers.end(); LayerIter++) {
         int RecHitLayer = *LayerIter;
         if(RecHitLayer < BarrelLayerNumber) {
             isBarrel = true;
@@ -376,7 +383,14 @@ int SimRPCSeedPattern::checkAlgorithm() {
         AlgorithmChoice.push_back(14);
     if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode15)
         AlgorithmChoice.push_back(15);
-
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode16)
+        AlgorithmChoice.push_back(16);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode17)
+        AlgorithmChoice.push_back(17);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode18)
+        AlgorithmChoice.push_back(18);
+    if(isBarrel == true && isNegativeEndcap == false && isPositiveEndcap == false && theBarrelOccupancyCode == BarrelPatternCode19)
+        AlgorithmChoice.push_back(19);
 
     // Auto choice or manual choise
     int FinalAlgorithm = -1;
@@ -498,6 +512,7 @@ double SimRPCSeedPattern::getdPhi(int i, int j, int k, int l) {
 }
     
 void SimRPCSeedPattern::checkRPCPattern() {
+
     if(isPatternChecked == true)
         return;
 
@@ -612,7 +627,17 @@ void SimRPCSeedPattern::computePatternfromSimData() {
         const PSimHit& thePSimHit = RecHit2SimHitMap[theRecHits[RefIndex]];
         Momentum = theRecHits[RefIndex]->det()->toGlobal(thePSimHit.momentumAtEntry());
         MeanPt = Momentum.perp();
-        SigmaPt = MeanPt / 5.;
+        SigmaPt = MeanPt * SimSigmaPt;
+        // for measured Pt distribution around simPt
+        if(SimBiasPt > 0.) {
+            std::normal_distribution<double> GaussianDistribution(MeanPt,SimBiasPt);
+            MeanPt = GaussianDistribution(theRandomGenerator);
+        }
+        // for measured Pt distribution bias from simPt, with sigma cover to simPt or not
+        if(SimBiasPt < 0.) {
+            MeanPt = SimBiasPt*-1.;
+            SigmaPt = MeanPt * SimSigmaPt;
+        }
         RefTrackId = thePSimHit.trackId();
         RefParticleType = thePSimHit.particleType();
         Charge = -1 * RefParticleType / abs(RefParticleType);

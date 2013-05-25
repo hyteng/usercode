@@ -19,6 +19,7 @@
 #include <SimDataFormats/RPCDigiSimLink/interface/RPCDigiSimLink.h>
 #include <DataFormats/Common/interface/DetSetVector.h>
 #include <MyModule/RPCSeedProducer/src/RPCSeedPattern.h>
+#include <random>
 
 class SimRPCSeedPattern {
 
@@ -75,6 +76,12 @@ class SimRPCSeedPattern {
     int RefParticleType;
     std::map<ConstMuonRecHitPointer, PSimHit> RecHit2SimHitMap;
     // parameters for configuration
+    double SimSigmaPt;
+    double SimBiasPt;
+    double SimSigmaPhi;
+    double SimBiasPhi;
+    double SimSigmaEta;
+    double SimBiasEta;
     double ZError;
     double MagnecticFieldThreshold;
     unsigned int SampleCount;
@@ -105,7 +112,7 @@ class SimRPCSeedPattern {
     bool isPatternChecked;
     // recHits collection
     ConstMuonRecHitContainer theRecHits;
-    std::vector<unsigned int> theRecHitLayers;
+    std::vector<int> theRecHitLayers;
     GlobalPoint theRecHitPosition[6];
     edm::ESHandle<MagneticField> theMagneticField;
     // magnetic field info
@@ -132,6 +139,8 @@ class SimRPCSeedPattern {
     // pattern estimation part
     int isGoodPattern;
     double PatternQuality;
+
+    std::default_random_engine theRandomGenerator;
 };
 
 #endif
