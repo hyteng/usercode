@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2012/11/13 18:05:00 $
- *  $Revision: 1.14 $
+ *  $Date: 2013/05/25 20:20:13 $
+ *  $Revision: 1.15 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -159,7 +159,7 @@ SimRPCSeedPattern::WeightedTrajectorySeed SimRPCSeedPattern::seed(const edm::Eve
 
     Algorithm = checkAlgorithm();
     createRPCPattern();
-    if(Algorithm >= 1 && Algorithm <= 30)
+    if(Algorithm >= 1)
         checkRPCPattern();
 
     computePatternfromSimData();        
@@ -516,7 +516,7 @@ void SimRPCSeedPattern::checkRPCPattern() {
     if(isPatternChecked == true)
         return;
 
-    if(debug) cout << "checkDoubleSegmentPattern." << endl;
+    if(debug) cout << "check RPC Pattern." << endl;
 
     isGoodPattern = 1;
 
@@ -533,9 +533,9 @@ void SimRPCSeedPattern::checkRPCPattern() {
         }
 
         if(applyFilter == true)
-            if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
+            if((BendingPhiMax * BendingPhiVal0 < 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 < 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 < 0. && Cut2[Algorithm-1] > 0.)) {
                 // only below the ExhaustivePhiTH we correct the BendingPhiMax, or it should come from a noise bias
-                if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1] && Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1] && Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 < 0. && BendingPhiMax * BendingPhiVal1 < 0.)
                     BendingPhiMax *= -1.;
                 else {
                     if(debug) cout << "block by Filter." << endl;
@@ -557,8 +557,8 @@ void SimRPCSeedPattern::checkRPCPattern() {
 
         if(applyFilter == true)
             if(fabs(BendingPhiMax) <= ExhaustivePhiTH[Algorithm-1])
-                if((BendingPhiMax * BendingPhiVal0 > 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 > 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 > 0. && Cut2[Algorithm-1] > 0.)) {
-                    if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 > 0. && BendingPhiMax * BendingPhiVal1 > 0.)
+                if((BendingPhiMax * BendingPhiVal0 < 0. && Cut0[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal1 < 0. && Cut1[Algorithm-1] > 0.) || (BendingPhiMax * BendingPhiVal2 < 0. && Cut2[Algorithm-1] > 0.)) {
+                    if(Cut0[Algorithm-1] > 0. && Cut1[Algorithm-1] > 0. && BendingPhiMax * BendingPhiVal0 < 0. && BendingPhiMax * BendingPhiVal1 < 0.)
                         BendingPhiMax *= -1.;
                     else {
                         if(debug) cout << "block by Filter." << endl;
