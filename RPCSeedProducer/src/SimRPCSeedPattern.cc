@@ -2,8 +2,8 @@
  *  See header file for a description of this class.
  *
  *
- *  $Date: 2013/05/25 20:20:13 $
- *  $Revision: 1.15 $
+ *  $Date: 2013/09/25 09:10:19 $
+ *  $Revision: 1.16 $
  *  \author Haiyun.Teng - Peking University
  *
  */
@@ -62,6 +62,7 @@ void SimRPCSeedPattern::configure(const edm::ParameterSet& iConfig) {
     SeedPurityTH = iConfig.getParameter<double>("SeedPurityTH");
     SimSigmaPt = iConfig.getParameter<double>("SimSigmaPt");
     SimBiasPt = iConfig.getParameter<double>("SimBiasPt");
+    SimBiasCharge = iConfig.getParameter<double>("SimBiasCharge");
     SimSigmaEta = iConfig.getParameter<double>("SimSigmaEta");    
     SimBiasEta = iConfig.getParameter<double>("SimBiasEta");
     SimSigmaPhi = iConfig.getParameter<double>("SimSigmaPhi");
@@ -628,9 +629,12 @@ void SimRPCSeedPattern::computePatternfromSimData() {
         Momentum = theRecHits[RefIndex]->det()->toGlobal(thePSimHit.momentumAtEntry());
         MeanPt = Momentum.perp();
         SigmaPt = MeanPt * SimSigmaPt;
+        RefTrackId = thePSimHit.trackId();
+        RefParticleType = thePSimHit.particleType();
+        Charge = -1 * RefParticleType / abs(RefParticleType);
         // for measured Pt distribution around simPt
         if(SimBiasPt > 0.) {
-            std::normal_distribution<double> GaussianDistribution(MeanPt,SimBiasPt);
+            std::normal_distribution<double> GaussianDistribution(MeanPt, MeanPt*SimBiasPt);
             MeanPt = GaussianDistribution(theRandomGenerator);
         }
         // for measured Pt distribution bias from simPt, with sigma cover to simPt or not
@@ -638,9 +642,7 @@ void SimRPCSeedPattern::computePatternfromSimData() {
             MeanPt = SimBiasPt*-1.;
             SigmaPt = MeanPt * SimSigmaPt;
         }
-        RefTrackId = thePSimHit.trackId();
-        RefParticleType = thePSimHit.particleType();
-        Charge = -1 * RefParticleType / abs(RefParticleType);
+        Charge *= SimBiasCharge;
     }
     else {
         if(debug) cout << "Can not find a SimHit from the RPCRecHit." << endl;

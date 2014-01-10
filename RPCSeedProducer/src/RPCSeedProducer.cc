@@ -13,7 +13,7 @@ Implementation:
 //
 // Original Author:  Haiyun Teng
 //         Created:  Wed Oct 29 17:24:36 CET 2008
-// $Id: RPCSeedProducer.cc,v 1.7 2010/02/16 17:08:43 wmtan Exp $
+// $Id: RPCSeedProducer.cc,v 1.4 2012/03/25 18:28:14 hyteng Exp $
 //
 //
 

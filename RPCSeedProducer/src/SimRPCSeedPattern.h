@@ -78,6 +78,7 @@ class SimRPCSeedPattern {
     // parameters for configuration
     double SimSigmaPt;
     double SimBiasPt;
+    double SimBiasCharge;
     double SimSigmaPhi;
     double SimBiasPhi;
     double SimSigmaEta;
